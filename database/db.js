@@ -131,6 +131,22 @@ function getOrderEvents(orderId) {
         .all(orderId);
 }
 
+function getCustomerByEmail(email) {
+    const row = database.prepare("SELECT payload FROM customers WHERE email = ?").get(String(email).toLowerCase());
+    return row ? JSON.parse(row.payload) : null;
+}
+
+function saveCustomer(customer) {
+    database.prepare("INSERT INTO customers (email, payload) VALUES (?, ?) ON CONFLICT(email) DO UPDATE SET payload = excluded.payload")
+        .run(customer.email.toLowerCase(), JSON.stringify(customer));
+}
+
+function listCustomerOrders(email) {
+    return database.prepare("SELECT payload FROM orders ORDER BY created_at DESC").all()
+        .map(row => JSON.parse(row.payload))
+        .filter(order => order.customer?.email?.toLowerCase() === String(email).toLowerCase());
+}
+
 async function initializeDatabase({ bootstrapOwnerPassword = "", hashPassword, isValidOwnerPassword }) {
     await fs.mkdir(path.dirname(DATABASE_FILE), { recursive: true });
     database = new Database(DATABASE_FILE);
@@ -145,6 +161,7 @@ async function initializeDatabase({ bootstrapOwnerPassword = "", hashPassword, i
         CREATE TABLE IF NOT EXISTS idempotency_keys (key TEXT PRIMARY KEY, order_id TEXT NOT NULL, request_hash TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS order_tracking (order_id TEXT PRIMARY KEY, token_hash TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS order_events (id INTEGER PRIMARY KEY AUTOINCREMENT, order_id TEXT NOT NULL, status TEXT NOT NULL, message TEXT NOT NULL, location TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS customers (email TEXT PRIMARY KEY, payload TEXT NOT NULL);
     `);
 
     if (!database.prepare("SELECT 1 FROM migrations WHERE name = ?").get("import-store-json")) {
@@ -170,4 +187,4 @@ async function initializeDatabase({ bootstrapOwnerPassword = "", hashPassword, i
     }
 }
 
-module.exports = { initializeDatabase, readStore, writeStore, getSetting, setSetting, saveOrder, updateOrderStatus, getTrackedOrder, getOrderEvents };
+module.exports = { initializeDatabase, readStore, writeStore, getSetting, setSetting, saveOrder, updateOrderStatus, getTrackedOrder, getOrderEvents, getCustomerByEmail, saveCustomer, listCustomerOrders };
