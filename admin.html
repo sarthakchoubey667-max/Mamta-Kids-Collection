@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Product Manager - Fashion Store</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .owner-page { max-width: 1180px; margin: 32px auto; padding: 24px; }
+        .owner-page > h1 { margin-bottom: 8px; }
+        .owner-intro { margin-bottom: 18px; color:#555; line-height:1.5; }
+        .owner-panel { max-width: 560px; margin: 24px auto; padding: 24px; background: #fff; border: 1px solid #ddd; border-radius: 12px; }
+        .owner-panel input, .owner-panel select { display:block; width:100%; margin:10px 0 16px; padding:12px; border:1px solid #bbb; border-radius:6px; }
+        .owner-panel button, .owner-product button, .owner-record button { padding:10px 16px; color:#fff; background:#222; border:0; border-radius:6px; cursor:pointer; }
+        .owner-product-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:18px; }
+        .owner-product { padding:14px; background:#fff; border:1px solid #ddd; border-radius:10px; }
+        .owner-product img { width:100%; height:190px; object-fit:contain; }
+        .owner-product button { margin:4px; }
+        .owner-product .delete-product, .owner-record .delete-message { background:#a32626; }
+        .owner-record select { padding:9px; margin-right:8px; }
+        .owner-list { display:grid; gap:14px; }
+        .owner-record { padding:16px; background:#fff; border:1px solid #ddd; border-radius:10px; overflow-wrap:anywhere; }
+        .owner-record h3 { margin:0 0 8px; }
+        .owner-record p { margin:6px 0; }
+        .owner-record input { display:block; width:min(100%,440px); margin:10px 0; padding:10px; border:1px solid #bbb; border-radius:6px; }
+        .order-tracking-history { margin-top:14px; padding-top:10px; border-top:1px solid #eee; color:#555; font-size:14px; }
+        .order-tracking-history p { line-height:1.45; }
+        .order-subsection { margin-top:14px; border:1px solid #e5e1de; border-radius:8px; background:#fcfbfa; }
+        .order-subsection > summary { padding:12px 14px; cursor:pointer; font-weight:700; color:#292929; }
+        .order-subsection-content { padding:0 14px 14px; }
+        .order-subsection-content label { display:block; margin:10px 0 5px; font-weight:600; }
+        .order-subsection-content select { width:min(100%,440px); padding:10px; border:1px solid #bbb; border-radius:6px; }
+        .order-subsection-content button { margin-top:10px; padding:10px 14px; color:#fff; background:#292929; border:0; border-radius:6px; cursor:pointer; }
+        .owner-section { margin:32px 0; padding:18px 20px; background:#fff; border:1px solid #ddd; border-radius:10px; }
+        .owner-section > summary { display:flex; align-items:center; justify-content:space-between; gap:12px; cursor:pointer; list-style:none; }
+        .owner-section > summary::-webkit-details-marker { display:none; }
+        .owner-section > summary::after { content:"+"; font-size:24px; line-height:1; }
+        .owner-section[open] > summary::after { content:"−"; }
+        .owner-section > summary h2 { margin:0; }
+        .orders-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:14px 0; }
+        .orders-toolbar button { padding:9px 14px; color:#fff; background:#292929; border:0; border-radius:6px; cursor:pointer; }
+        .new-order-badge { padding:5px 10px; color:#52303b; background:#f4dce3; border-radius:999px; font-weight:700; }
+        .owner-section > .owner-list { margin-top:18px; }
+        .owner-account { max-width:none; display:flex; justify-content:space-between; align-items:center; gap:20px; margin:24px 0; padding:20px 24px; }
+        .owner-account p { margin:0 0 4px; color:#666; font-size:12px; letter-spacing:1.4px; }
+        .owner-account h2 { margin:0 0 5px; font-size:22px; }
+        .owner-account small { color:#666; }
+        .owner-section-heading { display:flex; justify-content:space-between; align-items:end; gap:16px; margin:28px 0 16px; }
+        .owner-section-heading h2 { margin:0 0 5px; }
+        .owner-section-heading p { margin:0; color:#666; }
+        .owner-product-grid { grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
+        .owner-product img { object-fit:contain; background:#fff; }
+        .owner-product .edit-product { background:#333; }
+        .owner-admin-shell { display:grid; grid-template-columns:220px minmax(0,1fr); gap:22px; align-items:start; margin-top:22px; }
+        .owner-sidebar { position:sticky; top:16px; display:grid; gap:6px; padding:12px; background:#fff; border:1px solid #e4dfdc; border-radius:12px; }
+        .owner-sidebar button { width:100%; padding:12px 14px; text-align:left; color:#333; background:transparent; border:0; border-radius:7px; cursor:pointer; font:inherit; }
+        .owner-sidebar button:hover,.owner-sidebar button[aria-current="page"] { color:#fff; background:#292929; }
+        .owner-admin-content { min-width:0; }
+        .admin-view > h2 { margin:8px 0 18px; }
+        .admin-view[hidden] { display:none !important; }
+        .owner-stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; }
+        .owner-stat { padding:18px; background:#fff; border:1px solid #e4dfdc; border-radius:10px; }
+        .owner-stat span { display:block; color:#666; font-size:14px; }
+        .owner-stat strong { display:block; margin-top:8px; font-size:26px; }
+        .payment-note { padding:14px; background:#f8e6eb; border-radius:8px; line-height:1.5; }
+        [hidden] { display:none !important; }
+        #ownerMessage { min-height:1.5em; }
+        @media (max-width:760px) { .owner-admin-shell { grid-template-columns:1fr; } .owner-sidebar { position:static; display:flex; overflow-x:auto; } .owner-sidebar button { width:auto; flex:0 0 auto; white-space:nowrap; } }
+        @media (max-width:600px) { .owner-account,.owner-section-heading { align-items:flex-start; flex-direction:column; } .owner-account { padding:18px; } .owner-page { padding:16px; } .owner-section { padding:16px; } }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo"><a href="index.html"><img src="images/fashion-logo.png" alt="Fashion Store"></a></div>
+        <nav aria-label="Main navigation"><a href="shop.html" target="_blank" rel="noopener" aria-label="Shop" title="Shop"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16l-1.2 13H5.2L4 8Zm4-2a4 4 0 0 1 8 0v2h-2V6a2 2 0 0 0-4 0v2H8V6Z"/></svg></a><a href="index.html" aria-label="Home" title="Home"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2 1 11h3v10h16V11h3L12 2z M10 21v-7h4v7z"/></svg></a></nav>
+    </header>
+    <main class="owner-page">
+        <h1>Store admin</h1>
+        <p class="owner-intro">Manage products, prices, photos, customer orders, and contact messages in one place.</p>
+        <p id="ownerMessage" role="status"></p>
+        <section id="loginPanel" class="owner-panel">
+            <h2>Owner sign-in</h2>
+            <form id="loginForm">
+                <label for="ownerPassword">Owner password</label>
+                <input id="ownerPassword" type="password" autocomplete="current-password" required>
+                <button type="submit">Sign in</button>
+            </form>
+        </section>
+        <section id="setupPanel" class="owner-panel" hidden>
+            <h2>Set up owner access</h2>
+            <p>Choose any password you prefer. It cannot be empty.</p>
+            <form id="setupForm">
+                <label for="setupPassword">New owner password</label>
+                <input id="setupPassword" type="password" autocomplete="new-password" required>
+                <button type="submit">Create owner access</button>
+            </form>
+        </section>
+        <section id="managerPanel" hidden>
+            <div class="owner-panel owner-account">
+                <div><p>ACCOUNT TYPE</p><h2>Store administrator</h2><small>Your account can manage the full product catalog and customer orders.</small></div>
+                <button id="logoutButton" type="button">Sign out</button>
+            </div>
+            <div class="owner-admin-shell">
+              <nav class="owner-sidebar" aria-label="Admin sections">
+                <button type="button" data-admin-view="overview" aria-current="page">Overview</button>
+                <button type="button" data-admin-view="products">Products</button>
+                <button type="button" data-admin-view="orders">All orders</button>
+                <button type="button" data-admin-view="cancelled">Cancelled orders</button>
+                <button type="button" data-admin-view="tracking">Tracking</button>
+                <button type="button" data-admin-view="payments">Payments</button>
+                <button type="button" data-admin-view="messages">Contact messages</button>
+                <button type="button" data-admin-view="account">Account settings</button>
+              </nav>
+              <div class="owner-admin-content">
+                <section class="admin-view" data-view-panel="overview">
+                  <h2>Store overview</h2>
+                  <div class="owner-stat-grid">
+                    <article class="owner-stat"><span>Products</span><strong id="ownerProductCount">0</strong></article>
+                    <article class="owner-stat"><span>All orders</span><strong id="ownerOrderCount">0</strong></article>
+                    <article class="owner-stat"><span>Cancelled</span><strong id="ownerCancelledCount">0</strong></article>
+                    <article class="owner-stat"><span>In delivery / return</span><strong id="ownerTrackingCount">0</strong></article>
+                  </div>
+                  <p class="owner-intro">Choose a section from the side menu to manage your store.</p>
+                </section>
+                <section class="admin-view" data-view-panel="products" hidden>
+                  <h2>Products</h2>
+            <p><a id="ownerStoreLink" href="shop.html" target="_blank" rel="noopener">Open customer store in a new tab</a></p>
+            <div class="owner-panel">
+                <h2 id="productFormHeading">Add a store product</h2>
+                <form id="productForm">
+                    <input id="editingProductId" type="hidden">
+                    <label for="productName">Product name</label>
+                    <input id="productName" maxlength="100" required>
+                    <label for="productCategory">Category</label>
+                    <select id="productCategory" required><option value="men">Men</option><option value="women">Women</option><option value="kids">Kids</option></select>
+                    <label for="productPrice">Price (₹)</label>
+                    <input id="productPrice" type="number" min="0.01" max="1000000" step="0.01" required>
+                    <label for="productStock">Stock quantity (leave blank for untracked stock)</label>
+                    <input id="productStock" type="number" min="0" max="1000000" step="1" placeholder="Not tracked">
+                    <label id="productImageLabel" for="productImage">Product photo (JPEG, PNG, or WebP; max 5 MB)</label>
+                    <input id="productImage" type="file" accept="image/jpeg,image/png,image/webp" required>
+                    <button type="submit">Add product</button>
+                    <button id="cancelEditProduct" type="button" hidden>Cancel edit</button>
+                </form>
+            </div>
+                </section>
+                <section class="admin-view" data-view-panel="account" hidden>
+                    <h2>Account settings</h2>
+            <div class="owner-panel">
+                <h2>Change owner password</h2>
+                <form id="passwordForm">
+                    <label for="currentOwnerPassword">Current password</label>
+                    <input id="currentOwnerPassword" type="password" autocomplete="current-password" required>
+                    <label for="newOwnerPassword">New password</label>
+                    <input id="newOwnerPassword" type="password" autocomplete="new-password" required>
+                    <button type="submit">Change password</button>
+                </form>
+            </div>
+                </section>
+                <section class="admin-view" data-view-panel="products" hidden>
+            <div class="owner-section-heading">
+                <div><h2>Product catalog</h2><p>Edit any product's photo, price, name, or category.</p></div>
+            </div>
+            <div id="ownerProducts" class="owner-product-grid"></div>
+                </section>
+                <section class="admin-view" data-view-panel="orders" hidden>
+            <details class="owner-section" open>
+                <summary><h2>Customer orders</h2></summary>
+                <div class="orders-toolbar">
+                    <button id="refreshOrdersButton" type="button">Refresh orders</button>
+                    <span id="newOrderBadge" class="new-order-badge" role="status" hidden></span>
+                    <small>New orders are checked automatically every 20 seconds while this page is open.</small>
+                </div>
+                <div id="ownerOrders" class="owner-list"></div>
+            </details>
+                </section>
+                <section class="admin-view" data-view-panel="cancelled" hidden>
+                    <h2>Cancelled orders</h2>
+                    <div id="cancelledOrders" class="owner-list"></div>
+                </section>
+                <section class="admin-view" data-view-panel="tracking" hidden>
+                    <h2>Tracking and delivery</h2>
+                    <p>Update status and the latest delivery note in an order card.</p>
+                    <div id="trackingOrders" class="owner-list"></div>
+                </section>
+                <section class="admin-view" data-view-panel="payments" hidden>
+                    <h2>Payments</h2>
+                    <p class="payment-note">Payment methods and totals are listed here. COD and UPI payments must be checked manually; no online payment gateway is connected.</p>
+                    <div id="paymentsList" class="owner-list"></div>
+                </section>
+                <section class="admin-view" data-view-panel="messages" hidden>
+                    <h2>Contact messages</h2>
+            <details class="owner-section" open>
+                <summary><h2>Contact messages</h2></summary>
+                <div id="ownerMessages" class="owner-list"></div>
+            </details>
+                </section>
+              </div>
+            </div>
+        </section>
+    </main>
+    <script>
+        const loginPanel = document.getElementById("loginPanel");
+        const setupPanel = document.getElementById("setupPanel");
+        const managerPanel = document.getElementById("managerPanel");
+        const ownerMessage = document.getElementById("ownerMessage");
+        const ownerProducts = document.getElementById("ownerProducts");
+        const ownerStoreLink = document.getElementById("ownerStoreLink");
+        const ownerOrders = document.getElementById("ownerOrders");
+        const cancelledOrders = document.getElementById("cancelledOrders");
+        const trackingOrders = document.getElementById("trackingOrders");
+        const paymentsList = document.getElementById("paymentsList");
+        const ownerMessages = document.getElementById("ownerMessages");
+        const productForm = document.getElementById("productForm");
+        const newOrderBadge = document.getElementById("newOrderBadge");
+        let knownOrderIds = null;
+        let knownOrderUpdates = new Map();
+        let newOrderUpdates = new Set();
+        let orderPollTimer = null;
+
+        function showAdminView(viewName) {
+            document.querySelectorAll("[data-view-panel]").forEach(panel => {
+                panel.hidden = panel.dataset.viewPanel !== viewName;
+            });
+            document.querySelectorAll("[data-admin-view]").forEach(button => {
+                if (button.dataset.adminView === viewName) button.setAttribute("aria-current", "page");
+                else button.removeAttribute("aria-current");
+            });
+        }
+
+        document.querySelectorAll("[data-admin-view]").forEach(button => {
+            button.addEventListener("click", () => showAdminView(button.dataset.adminView));
+        });
+
+        function beginProductEdit(product) {
+            document.getElementById("editingProductId").value = product.id;
+            document.getElementById("productName").value = product.name;
+            document.getElementById("productCategory").value = product.category;
+            document.getElementById("productPrice").value = product.price;
+            document.getElementById("productStock").value = Number.isInteger(product.stock) ? product.stock : "";
+            document.getElementById("productImage").required = false;
+            document.getElementById("productImageLabel").textContent = "Replace photo (optional; JPEG, PNG, or WebP; max 5 MB)";
+            document.getElementById("productFormHeading").textContent = "Edit store product";
+            productForm.querySelector('button[type="submit"]').textContent = "Save product";
+            document.getElementById("cancelEditProduct").hidden = false;
+            productForm.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+
+        function resetProductForm() {
+            productForm.reset();
+            document.getElementById("editingProductId").value = "";
+            document.getElementById("productImage").required = true;
+            document.getElementById("productImageLabel").textContent = "Product photo (JPEG, PNG, or WebP; max 5 MB)";
+            document.getElementById("productFormHeading").textContent = "Add a store product";
+            productForm.querySelector('button[type="submit"]').textContent = "Add product";
+            document.getElementById("cancelEditProduct").hidden = true;
+        }
+
+        async function ownerRequest(url, options = {}) {
+            if (window.location.protocol === "file:") {
+                throw new Error("Open this page through the backend at http://localhost:3000/admin.html. Start the server first.");
+            }
+            let response;
+            try {
+                response = await fetch(url, { credentials: "same-origin", ...options });
+            } catch {
+                throw new Error("Backend is not reachable. In the project folder, run npm start and open http://localhost:3000/admin.html.");
+            }
+            let result;
+            try { result = await response.json(); }
+            catch { throw new Error("The backend did not return JSON. Open this page from http://localhost:3000/admin.html, not Live Server."); }
+            if (!response.ok) throw new Error(result.error || "Request failed.");
+            return result;
+        }
+
+        async function loadProducts() {
+            const result = await ownerRequest("/api/admin/products");
+            document.getElementById("ownerProductCount").textContent = result.products.length;
+            ownerProducts.replaceChildren();
+            result.products.forEach(product => {
+                const card = document.createElement("article");
+                card.className = "owner-product";
+                const image = document.createElement("img");
+                image.src = product.image;
+                image.alt = product.name;
+                const title = document.createElement("h3");
+                title.textContent = product.name;
+                const price = document.createElement("p");
+                price.textContent = `₹${product.price} · ${product.category}`;
+                const stock = document.createElement("p");
+                stock.textContent = Number.isInteger(product.stock) ? `Stock: ${product.stock}` : "Stock: not tracked";
+                card.append(image, title, price, stock);
+                const edit = document.createElement("button");
+                edit.type = "button";
+                edit.className = "edit-product";
+                edit.textContent = "Edit product";
+                edit.addEventListener("click", () => beginProductEdit(product));
+                card.append(edit);
+                if (product.ownerAdded) {
+                    const remove = document.createElement("button");
+                    remove.type = "button";
+                    remove.className = "delete-product";
+                    remove.textContent = "Delete product";
+                    remove.addEventListener("click", async () => {
+                        if (!window.confirm(`Delete ${product.name}?`)) return;
+                        try {
+                            await ownerRequest(`/api/admin/products/${encodeURIComponent(product.id)}`, { method: "DELETE" });
+                            ownerMessage.textContent = "Product deleted.";
+                            await loadProducts();
+                        } catch (error) { ownerMessage.textContent = error.message; }
+                    });
+                    card.append(remove);
+                }
+                ownerProducts.appendChild(card);
+            });
+            loginPanel.hidden = true;
+            managerPanel.hidden = false;
+            ownerStoreLink.hidden = false;
+            await Promise.all([loadOrders(), loadMessages()]);
+        }
+
+        function addEmptyState(container, text) {
+            const empty = document.createElement("p");
+            empty.textContent = text;
+            container.replaceChildren(empty);
+        }
+
+        function recordCard(titleText, details) {
+            const card = document.createElement("article");
+            card.className = "owner-record";
+            const title = document.createElement("h3");
+            title.textContent = titleText;
+            card.appendChild(title);
+            for (const detail of details) {
+                const line = document.createElement("p");
+                line.textContent = detail;
+                card.appendChild(line);
+            }
+            return card;
+        }
+
+        function formatDate(value) {
+            const date = new Date(value);
+            return Number.isNaN(date.getTime()) ? "Date unavailable" : date.toLocaleString();
+        }
+
+        async function loadOrders({ announceNew = false, clearNew = false } = {}) {
+            const { orders } = await ownerRequest("/api/admin/orders");
+            const currentIds = new Set(orders.map(order => order.id));
+            const arrived = knownOrderIds === null ? [] : orders.filter(order => !knownOrderIds.has(order.id));
+            const changed = knownOrderIds === null ? [] : orders.filter(order => {
+                if (!knownOrderIds.has(order.id)) return false;
+                const lastEvent = order.events?.[order.events.length - 1];
+                const updateStamp = lastEvent ? `${lastEvent.createdAt}|${lastEvent.status}|${lastEvent.message}` : order.status;
+                return knownOrderUpdates.get(order.id) !== updateStamp;
+            });
+            knownOrderIds = currentIds;
+            knownOrderUpdates = new Map(orders.map(order => {
+                const event = order.events?.[order.events.length - 1];
+                return [order.id, event ? `${event.createdAt}|${event.status}|${event.message}` : order.status];
+            }));
+            if (announceNew && (arrived.length || changed.length)) {
+                [...arrived, ...changed].forEach(order => {
+                    const event = order.events?.[order.events.length - 1];
+                    newOrderUpdates.add(`${order.id}:${event?.createdAt || order.status}`);
+                });
+                document.querySelector("#ownerOrders").closest("details").open = true;
+                ownerMessage.textContent = arrived.length
+                    ? `${arrived.length} new customer order${arrived.length === 1 ? " has" : "s have"} arrived.`
+                    : `${changed.length} customer order update${changed.length === 1 ? " is" : "s are"} available.`;
+            }
+            if (clearNew) newOrderUpdates.clear();
+            newOrderBadge.hidden = newOrderUpdates.size === 0;
+            newOrderBadge.textContent = newOrderUpdates.size + (newOrderUpdates.size === 1 ? " new order update" : " new order updates");
+            const cancelled = orders.filter(order => order.status === "Cancelled");
+            const tracked = orders.filter(order => order.status !== "Cancelled");
+            document.getElementById("ownerOrderCount").textContent = orders.length;
+            document.getElementById("ownerCancelledCount").textContent = cancelled.length;
+            document.getElementById("ownerTrackingCount").textContent = tracked.length;
+            if (!orders.length) {
+                addEmptyState(ownerOrders, "No orders yet.");
+                addEmptyState(cancelledOrders, "No cancelled orders.");
+                addEmptyState(trackingOrders, "No orders to track yet.");
+                addEmptyState(paymentsList, "No payment records yet.");
+                return;
+            }
+            ownerOrders.replaceChildren(...orders.map(order => createOrderCard(order)));
+            cancelled.length ? cancelledOrders.replaceChildren(...cancelled.map(order => createOrderCard(order))) : addEmptyState(cancelledOrders, "No cancelled orders.");
+            tracked.length ? trackingOrders.replaceChildren(...tracked.map(order => createOrderCard(order))) : addEmptyState(trackingOrders, "No orders to track yet.");
+            paymentsList.replaceChildren(...orders.map(order => recordCard(`Order ${order.id}`, [
+                `Customer: ${order.customer.name} (${order.customer.email})`,
+                `Method: ${order.payment === "cod" ? "Cash on Delivery" : "UPI (manual)"}`,
+                `Order total: INR ${Number(order.total).toFixed(2)}`,
+                `Order status: ${order.status || "Pending"}`,
+                order.payment === "cod" ? "Collection: due on delivery" : "Collection: verify UPI transfer manually"
+            ])));
+        }
+
+        function createOrderCard(order) {
+                const card = recordCard(
+                    `Order ${order.id}`,
+                    [
+                        `${order.customer.name} · ${order.customer.email}`,
+                        `${order.customer.address}, ${order.customer.city} ${order.customer.pincode}`,
+                        `Items: ${order.items.map(item => `${item.name} × ${item.quantity}`).join(", ")}`,
+                        `Total: ₹${Number(order.total).toFixed(2)} · Payment: ${order.payment.toUpperCase()}`,
+                        formatDate(order.createdAt)
+                    ]
+                );
+                const status = document.createElement("select");
+                ["Pending", "Confirmed", "Processing", "Shipped", "Out for delivery", "Near your location", "Delivered", "Return requested", "Return approved", "Return picked up", "Returned", "Cancelled"].forEach(value => {
+                    const option = document.createElement("option");
+                    option.value = value;
+                    option.textContent = value;
+                    option.selected = (order.status || "Pending") === value;
+                    status.appendChild(option);
+                });
+                const statusLabel = document.createElement("label");
+                statusLabel.textContent = "Order status";
+                statusLabel.appendChild(status);
+                const save = document.createElement("button");
+                save.type = "button";
+                save.textContent = "Save tracking update";
+                const location = document.createElement("input");
+                location.type = "text";
+                location.maxLength = 180;
+                location.placeholder = "Optional location / update note";
+                location.value = order.location || "";
+                const locationLabel = document.createElement("label");
+                locationLabel.textContent = "Location or update note";
+                locationLabel.appendChild(location);
+                save.addEventListener("click", async () => {
+                    try {
+                        const result = await ownerRequest(`/api/admin/orders/${encodeURIComponent(order.id)}`, {
+                            method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: status.value, location: location.value })
+                        });
+                        ownerMessage.textContent = result.message;
+                        await loadOrders();
+                    } catch (error) { ownerMessage.textContent = error.message; }
+                });
+                const tracking = document.createElement("details");
+                tracking.className = "order-subsection";
+                const trackingSummary = document.createElement("summary");
+                trackingSummary.textContent = "Tracking history";
+                tracking.appendChild(trackingSummary);
+                const trackingContent = document.createElement("div");
+                trackingContent.className = "order-subsection-content order-tracking-history";
+                const trackingHeading = document.createElement("strong");
+                trackingHeading.textContent = "Tracking updates";
+                trackingContent.appendChild(trackingHeading);
+                (order.events || []).slice(-5).reverse().forEach(event => {
+                    const update = document.createElement("p");
+                    update.textContent = `${formatDate(event.createdAt)} - ${event.status}: ${event.message}${event.location ? ` (${event.location})` : ""}`;
+                    trackingContent.appendChild(update);
+                });
+                tracking.appendChild(trackingContent);
+                const actions = document.createElement("details");
+                actions.className = "order-subsection";
+                const actionsSummary = document.createElement("summary");
+                actionsSummary.textContent = "Change status or delivery update";
+                const actionsContent = document.createElement("div");
+                actionsContent.className = "order-subsection-content";
+                actionsContent.append(statusLabel, locationLabel, save);
+                actions.append(actionsSummary, actionsContent);
+                card.append(tracking, actions);
+                return card;
+        }
+
+        async function loadMessages() {
+            const { messages } = await ownerRequest("/api/admin/messages");
+            if (!messages.length) return addEmptyState(ownerMessages, "No contact messages yet.");
+            ownerMessages.replaceChildren(...messages.map(message => {
+                const card = recordCard(message.subject, [`${message.name} · ${message.email}`, formatDate(message.createdAt), message.message]);
+                const remove = document.createElement("button");
+                remove.type = "button";
+                remove.className = "delete-message";
+                remove.textContent = "Delete message";
+                remove.addEventListener("click", async () => {
+                    if (!window.confirm("Delete this contact message?")) return;
+                    try {
+                        const result = await ownerRequest(`/api/admin/messages/${encodeURIComponent(message.id)}`, { method: "PATCH" });
+                        ownerMessage.textContent = result.message;
+                        await loadMessages();
+                    } catch (error) { ownerMessage.textContent = error.message; }
+                });
+                card.appendChild(remove);
+                return card;
+            }));
+        }
+
+        document.getElementById("refreshOrdersButton").addEventListener("click", async () => {
+            try {
+                await loadOrders({ clearNew: true });
+                ownerMessage.textContent = "Orders refreshed.";
+            } catch (error) { ownerMessage.textContent = error.message; }
+        });
+
+        function startOrderPolling() {
+            if (orderPollTimer) clearInterval(orderPollTimer);
+            orderPollTimer = setInterval(async () => {
+                if (document.hidden) return;
+                try { await loadOrders({ announceNew: true }); }
+                catch (error) { ownerMessage.textContent = error.message; }
+            }, 20_000);
+        }
+
+        (async () => {
+            try {
+                const session = await ownerRequest("/api/admin/session");
+                if (session.authenticated) {
+                    showAdminView("overview");
+                    await loadProducts();
+                    startOrderPolling();
+                    ownerMessage.textContent = "Owner session restored.";
+                } else if (!session.configured) {
+                    loginPanel.hidden = true;
+                    setupPanel.hidden = false;
+                    ownerMessage.textContent = "Create the first owner password to continue.";
+                }
+            } catch (error) { ownerMessage.textContent = error.message; }
+        })();
+
+        document.getElementById("setupForm").addEventListener("submit", async event => {
+            event.preventDefault();
+            ownerMessage.textContent = "Creating owner access...";
+            try {
+                const result = await ownerRequest("/api/admin/setup", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ password: document.getElementById("setupPassword").value })
+                });
+                setupPanel.hidden = true;
+                event.target.reset();
+                showAdminView("overview");
+                await loadProducts();
+                ownerMessage.textContent = result.message;
+            } catch (error) { ownerMessage.textContent = error.message; }
+        });
+
+        document.getElementById("loginForm").addEventListener("submit", async event => {
+            event.preventDefault();
+            ownerMessage.textContent = "Signing in...";
+            try {
+                await ownerRequest("/api/admin/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ password: document.getElementById("ownerPassword").value })
+                });
+                showAdminView("overview");
+                await loadProducts();
+                startOrderPolling();
+                ownerMessage.textContent = "Signed in as owner.";
+            } catch (error) { ownerMessage.textContent = error.message; }
+        });
+
+        document.getElementById("productForm").addEventListener("submit", async event => {
+            event.preventDefault();
+            const file = document.getElementById("productImage").files[0];
+            const editingId = document.getElementById("editingProductId").value;
+            if ((!editingId && !file) || (file && file.size > 5 * 1024 * 1024)) {
+                ownerMessage.textContent = "Choose an image file smaller than 5 MB.";
+                return;
+            }
+            ownerMessage.textContent = editingId ? "Saving product..." : "Uploading product...";
+            try {
+                let imageData;
+                if (file) imageData = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(new Error("Could not read the selected image."));
+                    reader.readAsDataURL(file);
+                });
+                const result = await ownerRequest(editingId ? `/api/admin/products/${encodeURIComponent(editingId)}` : "/api/admin/products", {
+                    method: editingId ? "PUT" : "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: document.getElementById("productName").value,
+                        category: document.getElementById("productCategory").value,
+                        price: document.getElementById("productPrice").value,
+                        stock: document.getElementById("productStock").value,
+                        imageData
+                    })
+                });
+                ownerMessage.textContent = result.message;
+                resetProductForm();
+                await loadProducts();
+            } catch (error) { ownerMessage.textContent = error.message; }
+        });
+
+        document.getElementById("cancelEditProduct").addEventListener("click", resetProductForm);
+
+        document.getElementById("passwordForm").addEventListener("submit", async event => {
+            event.preventDefault();
+            ownerMessage.textContent = "Saving new password...";
+            try {
+                const result = await ownerRequest("/api/admin/password", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        currentPassword: document.getElementById("currentOwnerPassword").value,
+                        newPassword: document.getElementById("newOwnerPassword").value
+                    })
+                });
+                event.target.reset();
+                ownerMessage.textContent = result.message;
+            } catch (error) { ownerMessage.textContent = error.message; }
+        });
+
+        document.getElementById("logoutButton").addEventListener("click", async () => {
+            try { await ownerRequest("/api/admin/logout", { method: "POST" }); }
+            finally {
+                if (orderPollTimer) clearInterval(orderPollTimer);
+                managerPanel.hidden = true;
+                loginPanel.hidden = false;
+                ownerMessage.textContent = "Signed out.";
+            }
+        });
+    </script>
+</body>
+</html>

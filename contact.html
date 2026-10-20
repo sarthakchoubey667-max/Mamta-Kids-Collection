@@ -1,0 +1,293 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Contact Us | Fashion Store</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="CSS/style.css">
+
+    <style>
+        .contact-hero {
+            background: #f4f4f4;
+            text-align: center;
+            padding: 55px 20px;
+        }
+
+        .contact-hero h1 {
+            font-size: 38px;
+            margin: 0 0 12px;
+            color: #222;
+        }
+
+        .contact-hero p {
+            color: #555;
+            font-size: 16px;
+            line-height: 1.7;
+        }
+
+        .contact-container {
+            max-width: 1000px;
+            margin: 45px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 1.3fr;
+            gap: 30px;
+        }
+
+        .contact-info,
+        .contact-form {
+            padding: 30px;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            background: white;
+            box-sizing: border-box;
+        }
+
+        .contact-info h2,
+        .contact-form h2 {
+            margin-top: 0;
+            margin-bottom: 22px;
+            color: #222;
+        }
+
+        .contact-info p {
+            color: #555;
+            line-height: 1.8;
+            margin: 18px 0;
+            overflow-wrap: anywhere;
+        }
+
+        .contact-info i {
+            color: #222;
+            width: 25px;
+            margin-right: 8px;
+        }
+
+        .contact-form label {
+            display: block;
+            margin: 15px 0 7px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .contact-form input,
+        .contact-form textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 15px;
+        }
+
+        .contact-form input:focus,
+        .contact-form textarea:focus {
+            outline: none;
+            border-color: #333;
+        }
+
+        .contact-form textarea {
+            min-height: 130px;
+            resize: vertical;
+        }
+
+        .contact-form button {
+            margin-top: 20px;
+            padding: 13px 25px;
+            border: none;
+            border-radius: 6px;
+            background: #222;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .contact-form button:hover {
+            background: #444;
+        }
+
+        #formMessage {
+            margin-top: 15px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 700px) {
+            .contact-container {
+                grid-template-columns: 1fr;
+                margin: 25px auto;
+            }
+
+            .contact-info,
+            .contact-form {
+                padding: 22px;
+            }
+
+            .contact-hero h1 {
+                font-size: 30px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <header>
+        <div class="logo">
+            <a href="index.html">
+                <img src="images/fashion-logo.png" alt="Fashion Store Logo">
+            </a>
+        </div>
+
+        <nav aria-label="Main navigation">
+            <a href="index.html" aria-label="Home" title="Home"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2 1 11h3v10h16V11h3L12 2z M10 21v-7h4v7z"/></svg></a>
+            <a href="shop.html" aria-label="Shop" title="Shop"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16l-1.2 13H5.2L4 8Zm4-2a4 4 0 0 1 8 0v2h-2V6a2 2 0 0 0-4 0v2H8V6Z"/></svg></a>
+            <a href="cart.html" aria-label="Cart" title="Cart"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 3h3l2.4 12.1a2 2 0 0 0 2 1.6h9.2a2 2 0 0 0 2-1.6L22 7H6.2l-.4-2H2v-2Zm8 15.5a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Zm8 0a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Z"/></svg></a>
+            <a href="contact.html" aria-label="Contact" title="Contact" aria-current="page"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M5 5h14a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3Zm-.6 3.2 7.6 5.4 7.6-5.4a1 1 0 0 0-.6-.2H5a1 1 0 0 0-.6.2Z"/></svg></a>
+        </nav>
+    </header>
+
+    <main>
+
+        <!-- PAGE INTRODUCTION -->
+        <section class="contact-hero">
+            <h1>Contact Us</h1>
+            <p>
+                Have a question about our collection?
+                We'd love to hear from you.
+            </p>
+        </section>
+
+        <!-- CONTACT CONTENT -->
+        <section class="contact-container">
+
+            <!-- CONTACT INFORMATION -->
+            <div class="contact-info">
+                <h2>Get In Touch</h2>
+
+                <p>
+                    <i class="fa-solid fa-envelope"></i>
+                    <strong>Email:</strong><br>
+                    Add your store email here
+                </p>
+
+                <p>
+                    <i class="fa-solid fa-phone"></i>
+                    <strong>Phone:</strong><br>
+                    Add your store phone number here
+                </p>
+
+                <p>
+                    <i class="fa-solid fa-clock"></i>
+                    <strong>Working Hours:</strong><br>
+                    Monday – Saturday
+                </p>
+
+                <p>
+                    Send us your questions or feedback
+                    using the contact form.
+                </p>
+            </div>
+
+            <!-- CONTACT FORM -->
+            <div class="contact-form">
+                <h2>Send Us a Message</h2>
+
+                <form id="contactForm">
+
+                    <label for="contactName">Full Name</label>
+                    <input
+                        type="text"
+                        id="contactName"
+                        name="name"
+                        placeholder="Enter your full name"
+                        required
+                    >
+
+                    <label for="contactEmail">Email Address</label>
+                    <input
+                        type="email"
+                        id="contactEmail"
+                        name="email"
+                        placeholder="Enter your email"
+                        required
+                    >
+
+                    <label for="contactSubject">Subject</label>
+                    <input
+                        type="text"
+                        id="contactSubject"
+                        name="subject"
+                        placeholder="Enter message subject"
+                        required
+                    >
+
+                    <label for="contactText">Your Message</label>
+                    <textarea
+                        id="contactText"
+                        name="message"
+                        placeholder="Write your message here..."
+                        required
+                    ></textarea>
+
+                    <button type="submit">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        Send Message
+                    </button>
+
+                    <p id="formMessage" role="status"></p>
+
+                </form>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-section">
+            <h2>Fashion Store</h2>
+            <p>Where Fashion Meets You</p>
+        </div>
+
+        <div class="footer-bottom">
+            &copy; 2026 Fashion Store. All rights reserved.
+        </div>
+    </footer>
+
+    <script src="JS/script.js"></script>
+    <script>
+        const contactForm = document.getElementById("contactForm");
+        const formMessage = document.getElementById("formMessage");
+
+        contactForm.addEventListener("submit", function(event) {
+            event.preventDefault();
+
+            const formData = new FormData(contactForm);
+            formMessage.textContent = "Sending your message...";
+            formMessage.style.color = "#555";
+            fetch("/api/messages", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(Object.fromEntries(formData.entries()))
+            }).then(async response => {
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || "Could not send your message.");
+                formMessage.textContent = result.message;
+                formMessage.style.color = "#176b36";
+                contactForm.reset();
+            }).catch(error => {
+                formMessage.textContent = error.message + " Please try again.";
+                formMessage.style.color = "#b42318";
+            });
+        });
+    </script>
+
+</body>
+</html>

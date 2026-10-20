@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order placed - Fashion Store</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header><div class="logo"><a href="index.html"><img src="images/fashion-logo.png" alt="Fashion Store"></a></div><nav aria-label="Main navigation"><a href="index.html" aria-label="Home" title="Home"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2 1 11h3v10h16V11h3L12 2z M10 21v-7h4v7z"/></svg></a><a href="shop.html" aria-label="Shop" title="Shop"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16l-1.2 13H5.2L4 8Zm4-2a4 4 0 0 1 8 0v2h-2V6a2 2 0 0 0-4 0v2H8V6Z"/></svg></a></nav></header>
+    <main class="order-success">
+        <div class="success-mark" aria-hidden="true">✓</div>
+        <h1>Your order is received!</h1>
+        <p>Thank you for shopping with us. Your order is confirmed and the store owner will process it.</p>
+        <div id="orderReceipt" class="owner-record"></div>
+        <section class="owner-record" aria-live="polite">
+            <h2>Live order tracking</h2>
+            <p id="trackingStatus">Loading the latest order update...</p>
+            <p id="trackingLocation"></p>
+            <ol id="trackingEvents"></ol>
+            <button id="requestReturnButton" type="button" hidden>Request a return</button>
+            <small>Tracking updates and location notes are provided by the store. Courier GPS tracking is not connected.</small>
+        </section>
+        <a class="continue-shopping" href="shop.html">Continue shopping</a>
+    </main>
+    <footer class="footer"><div class="footer-section"><h2>Fashion Store</h2><p>Where Fashion Meets You</p></div><div class="footer-bottom">&copy; 2026 Fashion Store. All rights reserved.</div></footer>
+    <script>
+        const receipt = document.getElementById("orderReceipt");
+        const trackingStatus = document.getElementById("trackingStatus");
+        const trackingLocation = document.getElementById("trackingLocation");
+        const trackingEvents = document.getElementById("trackingEvents");
+        const returnButton = document.getElementById("requestReturnButton");
+        let order = null;
+        try { order = JSON.parse(sessionStorage.getItem("lastOrder") || "null"); } catch { /* Recover from saved order tracking below. */ }
+        const orderId = order?.id || localStorage.getItem("lastOrderId");
+        const trackingToken = orderId ? (localStorage.getItem("orderTrackingToken:" + orderId) || order?.trackingToken || "") : "";
+
+        function renderReceipt(orderDetails) {
+            order = orderDetails;
+            const rows = [
+                ["Order ID", orderDetails.id],
+                ["Order date", new Date(orderDetails.createdAt).toLocaleString()],
+                ["Payment", orderDetails.payment === "cod" ? "Cash on Delivery" : "UPI (manual payment)"],
+                ["Deliver to", `${orderDetails.customer.name}, ${orderDetails.customer.address}, ${orderDetails.customer.city} ${orderDetails.customer.pincode}`],
+                ["Items", (orderDetails.items || []).map(item => `${item.name} x ${item.quantity}`).join(", ")],
+                ["Order total", `INR ${Number(orderDetails.total).toFixed(2)}`]
+            ];
+            receipt.replaceChildren();
+            rows.forEach(([label, value]) => {
+                const line = document.createElement("p");
+                const heading = document.createElement("strong");
+                heading.textContent = `${label}: `;
+                line.append(heading, document.createTextNode(value));
+                receipt.appendChild(line);
+            });
+        }
+
+        async function refreshTracking() {
+            if (!orderId || !trackingToken) {
+                trackingStatus.textContent = "Order placed. Tracking access is available for orders placed after tracking was enabled.";
+                return;
+            }
+            const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/tracking`, { headers: { "X-Order-Tracking-Token": trackingToken }, cache: "no-store" });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || "Could not load order updates.");
+            const tracked = result.order;
+            if (!order) renderReceipt(tracked);
+            trackingStatus.textContent = `Current status: ${tracked.status}`;
+            trackingLocation.textContent = tracked.location ? `Latest location/update: ${tracked.location} (shared by the store)` : "The store has not shared a location update yet.";
+            trackingEvents.replaceChildren(...tracked.events.map(event => {
+                const item = document.createElement("li");
+                item.textContent = `${new Date(event.createdAt).toLocaleString()} - ${event.status}: ${event.message}${event.location ? ` (${event.location})` : ""}`;
+                return item;
+            }));
+            returnButton.hidden = tracked.status !== "Delivered";
+            order = tracked;
+        }
+
+        if (order) renderReceipt(order);
+        refreshTracking().catch(error => { trackingStatus.textContent = error.message; });
+        window.setInterval(() => {
+            if (!document.hidden) refreshTracking().catch(error => { trackingStatus.textContent = error.message; });
+        }, 15000);
+        returnButton.addEventListener("click", async () => {
+            returnButton.disabled = true;
+            try {
+                const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/return`, {
+                    method: "POST", headers: { "X-Order-Tracking-Token": trackingToken }
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || "Could not request a return.");
+                trackingStatus.textContent = "Return request received. The store will review it.";
+                await refreshTracking();
+            } catch (error) {
+                trackingStatus.textContent = error.message;
+                returnButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

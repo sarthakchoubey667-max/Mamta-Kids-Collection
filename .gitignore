@@ -1,0 +1,10 @@
+node_modules/
+data/
+images/uploads/
+.env
+.env.*
+!.env.example
+backups/
+*.sqlite
+*.sqlite-*
+*.db
