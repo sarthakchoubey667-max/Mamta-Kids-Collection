@@ -132,12 +132,12 @@
                     <label for="productName">Product name</label>
                     <input id="productName" maxlength="100" required>
                     <label for="productCategory">Category</label>
-                    <select id="productCategory" required><option value="men">Men</option><option value="women">Women</option><option value="kids">Kids</option></select>
+                    <select id="productCategory" required><option value="kids">Kids</option></select>
                     <label for="productPrice">Price (₹)</label>
                     <input id="productPrice" type="number" min="0.01" max="1000000" step="0.01" required>
                     <label for="productStock">Stock quantity (leave blank for untracked stock)</label>
                     <input id="productStock" type="number" min="0" max="1000000" step="1" placeholder="Not tracked">
-                    <label id="productImageLabel" for="productImage">Product photo (JPEG, PNG, or WebP; max 5 MB)</label>
+                    <label id="productImageLabel" for="productImage">Kids product photo (JPEG, PNG, or WebP; max 5 MB)</label>
                     <input id="productImage" type="file" accept="image/jpeg,image/png,image/webp" required>
                     <button type="submit">Add product</button>
                     <button id="cancelEditProduct" type="button" hidden>Cancel edit</button>

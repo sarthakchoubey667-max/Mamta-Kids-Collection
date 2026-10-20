@@ -2,7 +2,7 @@ const http = require("node:http");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const crypto = require("node:crypto");
-const { initializeDatabase, readStore, writeStore, getSetting, setSetting, saveOrder, updateOrderStatus, getTrackedOrder, getOrderEvents } = require("./database/db");
+const { initializeDatabase, readStore, writeStore, getSetting, setSetting, saveOrder, updateOrderStatus, getTrackedOrder, getOrderEvents, getCustomerByEmail, saveCustomer, listCustomerOrders } = require("./database/db");
 
 const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, "data");
@@ -13,17 +13,16 @@ const PORT = Number(process.env.PORT) || 3000;
 const APP_ORIGIN = process.env.APP_ORIGIN || "";
 const BOOTSTRAP_OWNER_PASSWORD = process.env.ADMIN_PASSWORD || "";
 const adminSessions = new Map();
+const customerSessions = new Map();
 const authFailures = new Map();
 const AUTH_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_MAX_ATTEMPTS = 5;
 
 const builtInProducts = [
-    { id: "men-casual", name: "Men Casual Outfit", category: "men", price: 999, image: "images/men1.jpg", stock: null },
-    { id: "men-striped", name: "Men Striped Outfit", category: "men", price: 899, image: "images/men2.jpg", stock: null },
+    { id: "kids-daily-set", name: "Daily Comfort Set", category: "kids", price: 699, image: "images/kids-collection.svg", stock: null },
     { id: "kids-striped", name: "Kids Striped Outfit", category: "kids", price: 899, image: "images/men2.jpg", stock: null },
-    { id: "men-summer", name: "Men Summer Outfit", category: "men", price: 1099, image: "images/men3.jpg", stock: null },
-    { id: "women-casual", name: "Women Casual Outfit", category: "women", price: 1199, image: "images/women1.jpg", stock: null },
-    { id: "women-office", name: "Women Office Outfit", category: "women", price: 1299, image: "images/women2.jpg", stock: null }
+    { id: "kids-party-look", name: "Party Ready Look", category: "kids", price: 999, image: "images/men1.jpg", stock: null },
+    { id: "kids-summer-set", name: "Summer Play Set", category: "kids", price: 799, image: "images/men3.jpg", stock: null }
 ];
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
@@ -97,6 +96,35 @@ function setAdminCookie(response, request, sessionId) {
     response.setHeader("Set-Cookie", `fashion_admin=${sessionId}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${secure ? "; Secure" : ""}`);
 }
 
+function setCustomerCookie(response, sessionId, clear = false) {
+    const secure = process.env.NODE_ENV === "production" || Boolean(APP_ORIGIN.startsWith("https://"));
+    response.setHeader("Set-Cookie", `mamta_customer=${clear ? "" : sessionId}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${clear ? 0 : 2592000}${secure ? "; Secure" : ""}`);
+}
+
+function createCustomerSession(response, customer) {
+    const sessionId = crypto.randomBytes(32).toString("hex");
+    customerSessions.set(sessionId, { email: customer.email, expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000 });
+    setCustomerCookie(response, sessionId);
+}
+
+function getCustomer(request) {
+    const cookie = request.headers.cookie || "";
+    const entry = cookie.split(";").map(part => part.trim()).find(part => part.startsWith("mamta_customer="));
+    const sessionId = entry ? decodeURIComponent(entry.slice("mamta_customer=".length)) : "";
+    const session = customerSessions.get(sessionId);
+    if (!session || session.expiresAt < Date.now()) {
+        customerSessions.delete(sessionId);
+        return null;
+    }
+    return getCustomerByEmail(session.email);
+}
+
+function publicCustomer(customer) {
+    if (!customer) return null;
+    const { passwordHash, passwordSalt, ...safe } = customer;
+    return safe;
+}
+
 function createAdminSession(response, request) {
     const sessionId = crypto.randomBytes(32).toString("hex");
     adminSessions.set(sessionId, Date.now() + 8 * 60 * 60 * 1000);
@@ -127,7 +155,7 @@ async function getProducts() {
         ...product,
         ...(builtInOverrides[product.id] || {})
     }));
-    return [...editableBuiltIns, ...store.customProducts];
+    return [...editableBuiltIns, ...store.customProducts].filter(product => product.category === "kids");
 }
 
 function getSessionId(request) {
@@ -184,6 +212,50 @@ async function handleApi(request, response, pathname) {
 
     if (request.method === "GET" && pathname === "/api/products") {
         return sendJson(response, 200, { products: await getProducts() });
+    }
+
+    if (request.method === "GET" && pathname === "/api/customer/session") {
+        const customer = getCustomer(request);
+        return sendJson(response, 200, { authenticated: Boolean(customer), customer: publicCustomer(customer) });
+    }
+
+    if (request.method === "POST" && pathname === "/api/customer/signup") {
+        const body = await readBody(request);
+        const name = cleanText(body.name, 100);
+        const email = cleanText(body.email, 200).toLowerCase();
+        const phone = cleanText(body.phone, 30);
+        const password = typeof body.password === "string" ? body.password : "";
+        if (!name || !/^\S+@\S+\.\S+$/.test(email) || password.length < 6) return sendJson(response, 400, { error: "Name, valid email, and a password of at least 6 characters are required." });
+        if (getCustomerByEmail(email)) return sendJson(response, 409, { error: "An account with this email already exists. Please sign in." });
+        const credential = hashPassword(password);
+        const customer = { id: `customer-${crypto.randomUUID()}`, name, email, phone, passwordSalt: credential.salt, passwordHash: credential.hash, createdAt: new Date().toISOString() };
+        saveCustomer(customer);
+        createCustomerSession(response, customer);
+        return sendJson(response, 201, { customer: publicCustomer(customer) });
+    }
+
+    if (request.method === "POST" && pathname === "/api/customer/login") {
+        const body = await readBody(request);
+        const email = cleanText(body.email, 200).toLowerCase();
+        const password = typeof body.password === "string" ? body.password : "";
+        const customer = getCustomerByEmail(email);
+        if (!customer || !crypto.timingSafeEqual(Buffer.from(hashPassword(password, customer.passwordSalt).hash, "hex"), Buffer.from(customer.passwordHash, "hex"))) return sendJson(response, 401, { error: "Email or password is incorrect." });
+        createCustomerSession(response, customer);
+        return sendJson(response, 200, { customer: publicCustomer(customer) });
+    }
+
+    if (request.method === "POST" && pathname === "/api/customer/logout") {
+        const cookie = request.headers.cookie || "";
+        const entry = cookie.split(";").map(part => part.trim()).find(part => part.startsWith("mamta_customer="));
+        if (entry) customerSessions.delete(decodeURIComponent(entry.slice("mamta_customer=".length)));
+        setCustomerCookie(response, "", true);
+        return sendJson(response, 200, { message: "Signed out." });
+    }
+
+    if (request.method === "GET" && pathname === "/api/customer/orders") {
+        const customer = getCustomer(request);
+        if (!customer) return sendJson(response, 401, { error: "Customer sign-in required." });
+        return sendJson(response, 200, { orders: listCustomerOrders(customer.email) });
     }
 
     const trackingMatch = pathname.match(/^\/api\/orders\/([0-9a-f-]{36})\/(tracking|return)$/i);
@@ -316,8 +388,8 @@ async function handleApi(request, response, pathname) {
         const price = Number(body.price);
         const stock = body.stock === "" || body.stock == null ? null : Number(body.stock);
         const image = parseImageData(body.imageData);
-        if (!name || !["men", "women", "kids"].includes(category) || !Number.isFinite(price) || price <= 0 || price > 1_000_000 || (stock !== null && (!Number.isInteger(stock) || stock < 0 || stock > 1_000_000)) || !image) {
-            return sendJson(response, 400, { error: "Enter a product name, valid category and price, and upload a JPEG, PNG, or WebP image up to 5 MB." });
+        if (!name || category !== "kids" || !Number.isFinite(price) || price <= 0 || price > 1_000_000 || (stock !== null && (!Number.isInteger(stock) || stock < 0 || stock > 1_000_000)) || !image) {
+            return sendJson(response, 400, { error: "Enter a kids product name, price, and upload a JPEG, PNG, or WebP image up to 5 MB." });
         }
         const id = `custom-${crypto.randomUUID()}`;
         const filename = `${id}${image.extension}`;
@@ -338,8 +410,8 @@ async function handleApi(request, response, pathname) {
         const price = Number(body.price);
         const stock = body.stock === "" || body.stock == null ? null : Number(body.stock);
         const image = body.imageData ? parseImageData(body.imageData) : null;
-        if (!name || !["men", "women", "kids"].includes(category) || !Number.isFinite(price) || price <= 0 || price > 1_000_000 || (stock !== null && (!Number.isInteger(stock) || stock < 0 || stock > 1_000_000)) || (body.imageData && !image)) {
-            return sendJson(response, 400, { error: "Enter a product name, valid category and price, and choose a JPEG, PNG, or WebP image up to 5 MB." });
+        if (!name || category !== "kids" || !Number.isFinite(price) || price <= 0 || price > 1_000_000 || (stock !== null && (!Number.isInteger(stock) || stock < 0 || stock > 1_000_000)) || (body.imageData && !image)) {
+            return sendJson(response, 400, { error: "Enter a kids product name, price, and choose a JPEG, PNG, or WebP image up to 5 MB." });
         }
         const id = updateMatch[1];
         const store = await readStore();
@@ -544,7 +616,7 @@ initializeDatabase({
     hashPassword,
     isValidOwnerPassword
 }).then(() => {
-    server.listen(PORT, () => console.log(`Fashion Store running at http://localhost:${PORT}`));
+    server.listen(PORT, "0.0.0.0", () => console.log(`Fashion Store running at http://localhost:${PORT}`));
 }).catch(error => {
     console.error("Could not initialize the Fashion Store database:", error);
     process.exit(1);
