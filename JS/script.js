@@ -11,12 +11,10 @@ const kidsBtn = document.getElementById("kidsBtn");
 let products = Array.from(document.querySelectorAll(".product-card"));
 const API_BASE = "";
 const demoCatalog = [
-    { id: "men-casual", name: "Men Casual Outfit", category: "men", price: 999, image: "images/men1.jpg", stock: null },
-    { id: "men-striped", name: "Men Striped Outfit", category: "men", price: 899, image: "images/men2.jpg", stock: null },
+    { id: "kids-daily-set", name: "Daily Comfort Set", category: "kids", price: 699, image: "images/kids-collection.svg", stock: null },
     { id: "kids-striped", name: "Kids Striped Outfit", category: "kids", price: 899, image: "images/men2.jpg", stock: null },
-    { id: "men-summer", name: "Men Summer Outfit", category: "men", price: 1099, image: "images/men3.jpg", stock: null },
-    { id: "women-casual", name: "Women Casual Outfit", category: "women", price: 1199, image: "images/women1.jpg", stock: null },
-    { id: "women-office", name: "Women Office Outfit", category: "women", price: 1299, image: "images/women2.jpg", stock: null }
+    { id: "kids-party-look", name: "Party Ready Look", category: "kids", price: 999, image: "images/men1.jpg", stock: null },
+    { id: "kids-summer-set", name: "Summer Play Set", category: "kids", price: 799, image: "images/men3.jpg", stock: null }
 ];
 
 async function apiRequest(path, options) {
@@ -868,5 +866,61 @@ if (globalSearch.input) {
     globalSearch.input.addEventListener("input", () => {
         const noProducts = document.getElementById("noProductsMsg");
         if (noProducts) noProducts.style.display = "none";
+    });
+}
+// ===============================
+// CUSTOMER PROFILE
+// ===============================
+
+const accountMessage = document.getElementById("accountMessage");
+const authCards = document.getElementById("authCards");
+const profilePanel = document.getElementById("profilePanel");
+
+function accountRequest(path, options = {}) {
+    return apiRequest(path, { ...options, credentials: "include" });
+}
+
+function renderCustomerProfile(customer, orders = []) {
+    if (!customer || !profilePanel) return;
+    if (authCards) authCards.hidden = true;
+    profilePanel.hidden = false;
+    document.getElementById("profileName").textContent = customer.name;
+    document.getElementById("profileEmail").textContent = customer.email;
+    document.getElementById("profilePhone").textContent = customer.phone ? `Phone: ${customer.phone}` : "Phone not added yet";
+    const orderBox = document.getElementById("customerOrders");
+    if (!orders.length) { orderBox.textContent = "No orders yet. Start shopping for your little one."; return; }
+    orderBox.innerHTML = orders.map(order => `<article class="mini-order"><strong>${order.id}</strong><span>${order.status} · ₹${Number(order.total).toFixed(2)}</span><small>${new Date(order.createdAt).toLocaleDateString()}</small></article>`).join("");
+}
+
+if (profilePanel) {
+    const loadProfile = async () => {
+        try {
+            const session = await accountRequest("/api/customer/session");
+            if (!session.authenticated) return;
+            const result = await accountRequest("/api/customer/orders");
+            renderCustomerProfile(session.customer, result.orders);
+        } catch (error) { if (accountMessage) accountMessage.textContent = error.message; }
+    };
+    loadProfile();
+    document.getElementById("signupForm")?.addEventListener("submit", async event => {
+        event.preventDefault();
+        try {
+            const result = await accountRequest("/api/customer/signup", { method: "POST", body: JSON.stringify({ name: document.getElementById("signupName").value, email: document.getElementById("signupEmail").value, phone: document.getElementById("signupPhone").value, password: document.getElementById("signupPassword").value }) });
+            renderCustomerProfile(result.customer, []);
+            accountMessage.textContent = "Your customer profile is ready.";
+        } catch (error) { accountMessage.textContent = error.message; }
+    });
+    document.getElementById("loginForm")?.addEventListener("submit", async event => {
+        event.preventDefault();
+        try {
+            const result = await accountRequest("/api/customer/login", { method: "POST", body: JSON.stringify({ email: document.getElementById("loginEmail").value, password: document.getElementById("loginPassword").value }) });
+            const orders = await accountRequest("/api/customer/orders");
+            renderCustomerProfile(result.customer, orders.orders);
+            accountMessage.textContent = "Signed in successfully.";
+        } catch (error) { accountMessage.textContent = error.message; }
+    });
+    document.getElementById("customerLogout")?.addEventListener("click", async () => {
+        await accountRequest("/api/customer/logout", { method: "POST" });
+        window.location.reload();
     });
 }
