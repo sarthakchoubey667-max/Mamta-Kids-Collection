@@ -20,9 +20,9 @@ const AUTH_MAX_ATTEMPTS = 5;
 
 const builtInProducts = [
     { id: "kids-daily-set", name: "Daily Comfort Set", category: "kids", price: 699, image: "images/kids-collection.svg", stock: null },
-    { id: "kids-striped", name: "Kids Striped Outfit", category: "kids", price: 899, image: "images/men2.jpg", stock: null },
-    { id: "kids-party-look", name: "Party Ready Look", category: "kids", price: 999, image: "images/men1.jpg", stock: null },
-    { id: "kids-summer-set", name: "Summer Play Set", category: "kids", price: 799, image: "images/men3.jpg", stock: null }
+    { id: "kids-striped", name: "Kids Striped Outfit", category: "kids", price: 899, image: "images/kids-collection.svg", stock: null },
+    { id: "kids-party-look", name: "Party Ready Look", category: "kids", price: 999, image: "images/kids-collection.svg", stock: null },
+    { id: "kids-summer-set", name: "Summer Play Set", category: "kids", price: 799, image: "images/kids-collection.svg", stock: null }
 ];
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
