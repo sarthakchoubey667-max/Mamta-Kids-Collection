@@ -12,9 +12,9 @@ let products = Array.from(document.querySelectorAll(".product-card"));
 const API_BASE = "";
 const demoCatalog = [
     { id: "kids-daily-set", name: "Daily Comfort Set", category: "kids", price: 699, image: "images/kids-collection.svg", stock: null },
-    { id: "kids-striped", name: "Kids Striped Outfit", category: "kids", price: 899, image: "images/men2.jpg", stock: null },
-    { id: "kids-party-look", name: "Party Ready Look", category: "kids", price: 999, image: "images/men1.jpg", stock: null },
-    { id: "kids-summer-set", name: "Summer Play Set", category: "kids", price: 799, image: "images/men3.jpg", stock: null }
+    { id: "kids-striped", name: "Kids Striped Outfit", category: "kids", price: 899, image: "images/kids-collection.svg", stock: null },
+    { id: "kids-party-look", name: "Party Ready Look", category: "kids", price: 999, image: "images/kids-collection.svg", stock: null },
+    { id: "kids-summer-set", name: "Summer Play Set", category: "kids", price: 799, image: "images/kids-collection.svg", stock: null }
 ];
 
 async function apiRequest(path, options) {
