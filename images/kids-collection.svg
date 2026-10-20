@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" role="img" aria-labelledby="title desc">
+  <title id="title">Kids clothing collection</title>
+  <desc id="desc">A cheerful illustrated display of children's shirts, overalls, and a dress.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3c9d2"/><stop offset="1" stop-color="#d78da1"/></linearGradient>
+    <filter id="shadow" x="-.2" y="-.2" width="1.4" height="1.5"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#733c4d" flood-opacity=".18"/></filter>
+  </defs>
+  <rect width="900" height="620" rx="34" fill="url(#bg)"/>
+  <circle cx="730" cy="120" r="70" fill="#f8e3e7" opacity=".55"/>
+  <circle cx="155" cy="480" r="105" fill="#f8e3e7" opacity=".4"/>
+  <path d="M220 145h460M260 145v34m380-34v34" fill="none" stroke="#704454" stroke-width="13" stroke-linecap="round"/>
+  <g filter="url(#shadow)" stroke="#704454" stroke-linejoin="round" stroke-width="9">
+    <path d="M332 139q0-30 27-30t27 30" fill="none" stroke-linecap="round"/>
+    <path d="m323 174-44 25 26 58 24-12v186h120V245l24 12 26-58-44-25-35-16q-17 24-31 24t-31-24z" fill="#fff2d8"/>
+    <path d="M508 139q0-30 27-30t27 30" fill="none" stroke-linecap="round"/>
+    <path d="m499 174-44 25 26 58 24-12v186h120V245l24 12 26-58-44-25-35-16q-17 24-31 24t-31-24z" fill="#aec9b9"/>
+    <path d="M598 139q0-30 27-30t27 30" fill="none" stroke-linecap="round"/>
+    <path d="m589 174-40 24 21 57 23-9 20 203h111l20-203 23 9 21-57-40-24-35-16q-17 24-34 24t-34-24z" fill="#f8e8ed"/>
+    <path d="M357 264v99m-18-50h38m160-49v99m-18-50h38" fill="none" stroke="#d78da1" stroke-width="8" stroke-linecap="round"/>
+    <path d="M650 304v94m-29-46h58" fill="none" stroke="#d78da1" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <path d="M180 525h540" stroke="#fff" stroke-opacity=".5" stroke-width="3" stroke-linecap="round"/>
+  <text x="450" y="570" text-anchor="middle" fill="#583746" font-family="Arial,sans-serif" font-size="25" font-weight="700" letter-spacing="5">LITTLE EVERYDAY STYLES</text>
+</svg>
