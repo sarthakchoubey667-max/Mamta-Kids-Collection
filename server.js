@@ -12,9 +12,12 @@ const UPLOAD_DIR = path.resolve(ROOT, process.env.UPLOAD_DIR || path.join("image
 const PORT = Number(process.env.PORT) || 3000;
 const APP_ORIGIN = process.env.APP_ORIGIN || "";
 const BOOTSTRAP_OWNER_PASSWORD = process.env.ADMIN_PASSWORD || "";
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || "";
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || "";
 const adminSessions = new Map();
 const customerSessions = new Map();
 const authFailures = new Map();
+const pendingPayments = new Map();
 const AUTH_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_MAX_ATTEMPTS = 5;
 
@@ -134,6 +137,43 @@ function createAdminSession(response, request) {
 function sendJson(response, status, body) {
     response.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
     response.end(JSON.stringify(body));
+}
+
+async function validateCartItems(rawItems) {
+    const catalog = await getProducts();
+    if (!Array.isArray(rawItems) || rawItems.length === 0 || rawItems.length > Math.min(catalog.length, 50)) return { error: "Your cart is empty or invalid." };
+    const items = [];
+    for (const item of rawItems) {
+        if (!item || typeof item !== "object" || typeof item.productId !== "string") return { error: "Your cart contains an invalid product." };
+        const product = catalog.find(entry => entry.id === item.productId);
+        const quantity = item.quantity;
+        if (!product || !Number.isInteger(quantity) || quantity < 1 || quantity > 99) return { error: "Your cart contains an invalid product or quantity." };
+        const existing = items.find(entry => entry.productId === product.id);
+        if (existing) {
+            existing.quantity += quantity;
+            if (existing.quantity > 99) return { error: "Maximum quantity per product is 99." };
+        } else items.push({ productId: product.id, name: product.name, price: product.price, image: product.image, quantity });
+    }
+    return { items, total: items.reduce((sum, item) => sum + item.price * item.quantity, 0) };
+}
+
+async function createRazorpayOrder(amount, receipt) {
+    const credentials = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+    const response = await fetch("https://api.razorpay.com/v1/orders", {
+        method: "POST",
+        headers: { Authorization: `Basic ${credentials}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, currency: "INR", receipt, payment_capture: 1 })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.id) throw new Error(result.error?.description || "Could not start online payment.");
+    return result;
+}
+
+function verifyRazorpaySignature(orderId, paymentId, signature) {
+    const expected = crypto.createHmac("sha256", RAZORPAY_KEY_SECRET).update(`${orderId}|${paymentId}`).digest("hex");
+    const actual = Buffer.from(signature || "", "utf8");
+    const expectedBuffer = Buffer.from(expected, "utf8");
+    return actual.length === expectedBuffer.length && crypto.timingSafeEqual(actual, expectedBuffer);
 }
 
 async function readBody(request, maxBytes = 1_000_000) {
@@ -456,6 +496,25 @@ async function handleApi(request, response, pathname) {
         return sendJson(response, 200, { message: "Product deleted." });
     }
 
+    if (request.method === "GET" && pathname === "/api/payments/razorpay/config") {
+        return sendJson(response, 200, { enabled: Boolean(RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET), keyId: RAZORPAY_KEY_ID || null });
+    }
+
+    if (request.method === "POST" && pathname === "/api/payments/razorpay/order") {
+        if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) return sendJson(response, 503, { error: "Online payment is not configured yet. Please choose Cash on Delivery." });
+        const body = await readBody(request);
+        const cart = await validateCartItems(body.items);
+        if (cart.error) return sendJson(response, 400, { error: cart.error });
+        const amount = Math.round(cart.total * 100);
+        try {
+            const razorpayOrder = await createRazorpayOrder(amount, `mamta-${crypto.randomUUID().slice(0, 8)}`);
+            pendingPayments.set(razorpayOrder.id, { amount, expiresAt: Date.now() + 15 * 60 * 1000 });
+            return sendJson(response, 200, { keyId: RAZORPAY_KEY_ID, orderId: razorpayOrder.id, amount, currency: "INR" });
+        } catch (error) {
+            return sendJson(response, 502, { error: error.message || "Could not start online payment." });
+        }
+    }
+
     if (request.method === "POST" && pathname === "/api/orders") {
         const body = await readBody(request);
         const customer = body.customer || {};
@@ -468,34 +527,25 @@ async function handleApi(request, response, pathname) {
         if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !address || !city || !pincode) {
             return sendJson(response, 400, { error: "Enter valid customer and delivery details." });
         }
-        if (!["cod", "upi"].includes(payment)) return sendJson(response, 400, { error: "Select a valid payment method." });
+        if (!["cod", "online"].includes(payment)) return sendJson(response, 400, { error: "Select a valid payment method." });
         const idempotencyKey = cleanText(request.headers["idempotency-key"], 80);
         if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey)) {
             return sendJson(response, 400, { error: "Refresh checkout and submit the order again." });
         }
         const trackingToken = cleanText(request.headers["x-order-tracking-token"], 80);
         if (!/^[0-9a-f]{64}$/i.test(trackingToken)) return sendJson(response, 400, { error: "Order tracking could not be started. Refresh checkout and try again." });
-        const catalog = await getProducts();
-        if (!Array.isArray(body.items) || body.items.length === 0 || body.items.length > Math.min(catalog.length, 50)) {
-            return sendJson(response, 400, { error: "Your cart is empty or invalid." });
-        }
-
-        const items = [];
-        for (const item of body.items) {
-            if (!item || typeof item !== "object" || typeof item.productId !== "string") {
-                return sendJson(response, 400, { error: "Your cart contains an invalid product." });
+        const cart = await validateCartItems(body.items);
+        if (cart.error) return sendJson(response, 400, { error: cart.error });
+        const { items, total } = cart;
+        let paymentDetails = null;
+        if (payment === "online") {
+            if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) return sendJson(response, 503, { error: "Online payment is not configured yet. Please choose Cash on Delivery." });
+            paymentDetails = body.paymentDetails || {};
+            const pending = pendingPayments.get(paymentDetails.razorpayOrderId);
+            if (!pending || pending.expiresAt < Date.now() || pending.amount !== Math.round(total * 100) || !verifyRazorpaySignature(paymentDetails.razorpayOrderId, paymentDetails.razorpayPaymentId, paymentDetails.razorpaySignature)) {
+                return sendJson(response, 400, { error: "Online payment could not be verified. Please try again." });
             }
-            const product = catalog.find(entry => entry.id === item.productId);
-            const quantity = item.quantity;
-            if (!product || !Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
-                return sendJson(response, 400, { error: "Your cart contains an invalid product or quantity." });
-            }
-            const existing = items.find(entry => entry.productId === product.id);
-            if (existing) {
-                existing.quantity += quantity;
-                if (existing.quantity > 99) return sendJson(response, 400, { error: "Maximum quantity per product is 99." });
-            }
-            else items.push({ productId: product.id, name: product.name, price: product.price, image: product.image, quantity });
+            pendingPayments.delete(paymentDetails.razorpayOrderId);
         }
 
         const normalizedCustomer = { name, email, address, city, pincode };
@@ -506,8 +556,9 @@ async function handleApi(request, response, pathname) {
             status: "Pending",
             customer: normalizedCustomer,
             payment,
+            ...(paymentDetails ? { paymentDetails: { razorpayPaymentId: paymentDetails.razorpayPaymentId, razorpayOrderId: paymentDetails.razorpayOrderId } } : {}),
             items,
-            total: items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+            total
         };
         const trackingTokenHash = crypto.createHash("sha256").update(trackingToken).digest("hex");
         const saved = saveOrder(order, idempotencyKey, requestHash, builtInProducts.map(product => product.id), trackingTokenHash);

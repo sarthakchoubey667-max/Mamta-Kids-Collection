@@ -22,7 +22,7 @@ Then open `http://localhost:3000`. Admin access is at `http://localhost:3000/adm
 - After checkout, the customer sees an on-screen receipt with the order ID, date, products, payment method, delivery details, and total. No email or SMS confirmation is sent yet.
 - Order tracking updates are saved as a status timeline. The customer tracking page checks for changes without reloading, and the owner can set manual delivery status/location notes. Courier GPS is not integrated. Browser tabs must remain open for live on-screen updates; off-page push/email/SMS alerts need an HTTPS deployment and a configured notification provider.
 - Owners can update statuses through Confirmed, Processing, Shipped, Out for delivery, Near your location, and Delivered, then process Return requested, Return approved, Return picked up, or Returned. Customers can request a return after delivery from the order tracking page.
-- Cash on Delivery is recorded as an order method. UPI is currently a manual arrangement; there is no payment gateway integration or verified online payment.
+- Cash on Delivery remains available. Online payments use Razorpay Standard Checkout when `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` are configured; the server verifies the Razorpay signature before saving an online-paid order.
 
 ## Database, uploads, backup, and restore
 

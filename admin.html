@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Owner Product Manager - Fashion Store</title>
+    <title>Owner Product Manager - Mamta Kids Collection</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
         .owner-page { max-width: 1180px; margin: 32px auto; padding: 24px; }
@@ -71,7 +71,7 @@
 </head>
 <body>
     <header>
-        <div class="logo"><a href="index.html"><img src="images/fashion-logo.png" alt="Fashion Store"></a></div>
+        <div class="logo"><a href="index.html"><img src="images/fashion-logo.png" alt="Mamta Kids Collection"></a></div>
         <nav aria-label="Main navigation"><a href="shop.html" target="_blank" rel="noopener" aria-label="Shop" title="Shop"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16l-1.2 13H5.2L4 8Zm4-2a4 4 0 0 1 8 0v2h-2V6a2 2 0 0 0-4 0v2H8V6Z"/></svg></a><a href="index.html" aria-label="Home" title="Home"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2 1 11h3v10h16V11h3L12 2z M10 21v-7h4v7z"/></svg></a></nav>
     </header>
     <main class="owner-page">
@@ -185,7 +185,7 @@
                 </section>
                 <section class="admin-view" data-view-panel="payments" hidden>
                     <h2>Payments</h2>
-                    <p class="payment-note">Payment methods and totals are listed here. COD and UPI payments must be checked manually; no online payment gateway is connected.</p>
+                    <p class="payment-note">Payment methods and totals are listed here. COD remains available, while online payments are verified through Razorpay before an order is saved.</p>
                     <div id="paymentsList" class="owner-list"></div>
                 </section>
                 <section class="admin-view" data-view-panel="messages" hidden>
@@ -389,10 +389,10 @@
             tracked.length ? trackingOrders.replaceChildren(...tracked.map(order => createOrderCard(order))) : addEmptyState(trackingOrders, "No orders to track yet.");
             paymentsList.replaceChildren(...orders.map(order => recordCard(`Order ${order.id}`, [
                 `Customer: ${order.customer.name} (${order.customer.email})`,
-                `Method: ${order.payment === "cod" ? "Cash on Delivery" : "UPI (manual)"}`,
+                `Method: ${order.payment === "cod" ? "Cash on Delivery" : "Online payment (Razorpay)"}`,
                 `Order total: INR ${Number(order.total).toFixed(2)}`,
                 `Order status: ${order.status || "Pending"}`,
-                order.payment === "cod" ? "Collection: due on delivery" : "Collection: verify UPI transfer manually"
+                order.payment === "cod" ? "Collection: due on delivery" : "Collection: online payment verified"
             ])));
         }
 
