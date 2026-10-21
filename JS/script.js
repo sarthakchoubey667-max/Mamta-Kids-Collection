@@ -961,6 +961,33 @@ if (profilePanel) {
     });
 }
 (() => {
+    let deferredInstallPrompt = null;
+    const installButton = document.createElement("button");
+    installButton.type = "button";
+    installButton.className = "install-app-button";
+    installButton.textContent = "Install app";
+    installButton.setAttribute("aria-label", "Install Mamta Kids Collection app");
+    installButton.hidden = window.matchMedia("(display-mode: standalone)").matches || Boolean(navigator.standalone);
+    installButton.addEventListener("click", async () => {
+        if (!deferredInstallPrompt) {
+            alert("Chrome/Edge ke menu me Install app ya Create shortcut > Open as window choose karein.");
+            return;
+        }
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        installButton.hidden = true;
+    });
+    window.addEventListener("beforeinstallprompt", event => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        installButton.hidden = false;
+    });
+    window.addEventListener("appinstalled", () => {
+        deferredInstallPrompt = null;
+        installButton.hidden = true;
+    });
+    document.body.appendChild(installButton);
     if (!document.querySelector('link[rel="manifest"]')) {
         const manifest = document.createElement("link");
         manifest.rel = "manifest";
