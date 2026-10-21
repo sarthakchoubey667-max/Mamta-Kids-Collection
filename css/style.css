@@ -1076,9 +1076,9 @@ body.home-page main { background:var(--paper); }
 .hero-kids h1 { font-family:Georgia,serif; font-size:clamp(44px,7vw,86px); line-height:.98; }
 .hero-kids h1 em, .kids-brand-page h2 em { color:#c26f7c; }
 .kids-editorial-grid { grid-template-columns:repeat(3,1fr); }
-.editorial-card-school { background-image:linear-gradient(180deg,transparent 35%,rgba(40,20,20,.7)),url("../images/men1.jpg"); }
-.editorial-card-play { background-image:linear-gradient(180deg,transparent 35%,rgba(40,20,20,.7)),url("../images/men2.jpg"); }
-.editorial-card-party { background-image:linear-gradient(180deg,transparent 35%,rgba(40,20,20,.7)),url("../images/men3.jpg"); }
+.editorial-card-school { background-image:linear-gradient(180deg,transparent 35%,rgba(40,20,20,.7)),url("../images/kids-collection.svg"); }
+.editorial-card-play { background-image:linear-gradient(180deg,transparent 35%,rgba(40,20,20,.7)),url("../images/kids-collection.svg"); }
+.editorial-card-party { background-image:linear-gradient(180deg,transparent 35%,rgba(40,20,20,.7)),url("../images/kids-collection.svg"); }
 .products { max-width:1180px; margin:auto; padding:70px 5vw 100px; min-height:70vh; background:rgba(255,250,247,.92); }
 .products-heading { display:flex; justify-content:space-between; align-items:end; gap:24px; margin-bottom:25px; }
 .products-heading h1 { font-family:Georgia,serif; font-size:clamp(34px,5vw,60px); margin:8px 0; }
@@ -1095,7 +1095,39 @@ body.home-page main { background:var(--paper); }
 .account-shell { max-width:1100px; margin:auto; padding:70px 5vw 100px; background:#fffaf7; min-height:75vh; }
 .account-intro { max-width:650px; margin-bottom:30px; }
 .account-intro h1 { font:clamp(38px,6vw,68px)/1 Georgia,serif; margin:10px 0 16px; }
-.auth-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; }
+.auth-box { max-width:520px; margin:0 auto; background:#fff; border:1px solid #eadfdb; border-radius:18px; padding:8px; box-shadow:0 12px 30px rgba(87,43,45,.08); }
+.auth-tabs { display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; background:#f7efec; border-radius:12px; }
+.auth-tab { border:0; background:transparent; color:#6b5552; padding:13px 12px; border-radius:9px; font-weight:700; cursor:pointer; }
+.auth-tab.active { background:#fff; color:#171918; box-shadow:0 2px 9px rgba(87,43,45,.1); }
+.auth-panel { border:0; box-shadow:none; padding:24px 18px 18px; }
+.auth-panel[hidden] { display:none; }
+.auth-switch { margin:18px 0 0; text-align:center; font-size:13px; color:#6b5552; }
+.inline-auth-link { border:0; background:none; color:#171918; font-weight:800; text-decoration:underline; cursor:pointer; padding:0; }
+
+/* Soft boutique polish: playful depth without changing the Mamta identity. */
+:root { --mamta-rose:#c96b72; --mamta-ink:#241b1c; --mamta-cream:#fff8f3; }
+body.kids-brand-page { background: radial-gradient(circle at 8% 0%, rgba(255,214,202,.7), transparent 34rem), linear-gradient(135deg,#fffaf6 0%,#fff5f1 48%,#fffdfb 100%); }
+.kids-header, .site-footer { position:relative; overflow:hidden; }
+.kids-header::after, .site-footer::before { content:""; position:absolute; width:220px; height:220px; border-radius:50%; background:rgba(255,190,178,.16); filter:blur(4px); pointer-events:none; }
+.kids-header::after { right:-80px; top:-150px; }
+.site-footer::before { left:-90px; bottom:-150px; }
+.hero-kids { position:relative; overflow:hidden; isolation:isolate; background:linear-gradient(120deg,rgba(255,247,242,.96),rgba(255,222,215,.72)); box-shadow:0 24px 60px rgba(125,67,67,.11); }
+.hero-kids::before { content:""; position:absolute; z-index:-1; width:360px; height:360px; right:5%; top:-35%; border-radius:50%; background:rgba(255,255,255,.55); filter:blur(2px); animation:mamtaFloat 8s ease-in-out infinite; }
+.hero-kids .hero-copy, .hero-kids .hero-stamp { animation:mamtaRise .75s ease both; }
+.hero-kids .hero-stamp { animation-delay:.12s; }
+.button-dark, .button { position:relative; overflow:hidden; transition:transform .25s ease, box-shadow .25s ease, background .25s ease; }
+.button-dark::after, .button::after { content:""; position:absolute; inset:0 auto 0 -120%; width:70%; background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent); transform:skewX(-18deg); transition:left .55s ease; }
+.button-dark:hover, .button:hover { transform:translateY(-3px); box-shadow:0 12px 24px rgba(49,30,30,.18); }
+.button-dark:hover::after, .button:hover::after { left:140%; }
+.product-card, .editorial-card, .account-card, .auth-box, .profile-panel { transition:transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
+.product-card:hover, .editorial-card:hover { transform:translateY(-8px); box-shadow:0 18px 34px rgba(93,48,48,.15); border-color:rgba(201,107,114,.45); }
+.product-card img { transition:transform .45s cubic-bezier(.2,.75,.25,1); }
+.product-card:hover img { transform:scale(1.045) rotate(-1deg); }
+.auth-box { backdrop-filter:blur(12px); background:rgba(255,255,255,.84); }
+.eyebrow { color:var(--mamta-rose); letter-spacing:.16em; }
+@keyframes mamtaFloat { 0%,100% { transform:translate3d(0,0,0) scale(1); } 50% { transform:translate3d(-22px,18px,0) scale(1.08); } }
+@keyframes mamtaRise { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; } }
 .account-card,.profile-panel { background:#fff; border:1px solid #eadfdb; border-radius:18px; padding:26px; box-shadow:0 12px 30px rgba(87,43,45,.06); }
 .account-card h2,.profile-panel h2 { font-family:Georgia,serif; margin-bottom:8px; }
 .account-card form { display:grid; gap:10px; margin-top:18px; }
@@ -1109,3 +1141,6 @@ body.home-page main { background:var(--paper); }
 .mini-order span { color:#a95768; font-size:14px; }
 .mini-order small { color:#777; }
 @media (max-width:760px) { .kids-brand-page .kids-header { flex-wrap:wrap; gap:12px; } .kids-brand-page .kids-header nav { order:3; width:100%; justify-content:space-between; gap:8px; } .kids-brand-page .kids-header nav a { margin-left:0; } .products-heading,.profile-head { align-items:flex-start; flex-direction:column; } .kids-editorial-grid,.auth-grid,.profile-grid { grid-template-columns:1fr; } .hero-kids { padding-left:7vw; } }
+.install-app-button { position: fixed; top: 74px; right: 18px; z-index: 1000; padding: 10px 15px; color: #fff; background: #171918; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; box-shadow: 0 10px 24px rgba(23,25,24,.2); font: inherit; font-weight: 700; cursor: pointer; transition: transform .2s ease, box-shadow .2s ease; }
+.install-app-button:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(23,25,24,.28); }
+@media (max-width: 640px) { .install-app-button { top: 62px; right: 12px; padding: 8px 12px; font-size: 12px; } }
