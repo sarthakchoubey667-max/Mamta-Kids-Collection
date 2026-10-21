@@ -2,6 +2,7 @@
   "name": "Mamta Kids Collection",
   "short_name": "Mamta Kids",
   "description": "Kids fashion from Mamta Kids Collection.",
+  "id": "/index.html",
   "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
