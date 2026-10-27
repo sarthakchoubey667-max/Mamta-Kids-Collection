@@ -1157,6 +1157,14 @@ body.kids-brand-page { background: radial-gradient(circle at 8% 0%, rgba(255,214
 @media (max-width: 640px) { .install-app-button { top: 62px; right: 12px; padding: 8px 12px; font-size: 12px; } }
 
 .upi-qr-panel{margin:16px 0;padding:18px;background:#fff8f5;border:1px solid #ead8d0;border-radius:14px;text-align:center}.upi-qr-panel img{display:block;width:min(100%,320px);margin:14px auto;border-radius:10px}.upi-qr-panel input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cfc1bb;border-radius:8px}
+.opening-screen { position:fixed; inset:0; z-index:2000; display:grid; place-items:center; align-content:center; gap:10px; background:radial-gradient(circle at 50% 30%,#fff,#ffe8df 55%,#f7c9c0); text-align:center; animation:openingFade 1.2s ease 2.4s forwards; pointer-events:none; }
+.opening-screen img { width:132px; height:132px; object-fit:contain; filter:drop-shadow(0 15px 22px rgba(105,53,53,.18)); animation:openingLogo 1.4s ease both; }
+.opening-screen p { margin:4px 0 0; color:#2d2525; font:700 22px Georgia,serif; letter-spacing:.18em; animation:mamtaRise .8s .3s both; }
+.opening-screen small { color:#a95768; letter-spacing:.12em; animation:mamtaRise .8s .45s both; }
+.opening-screen .button { pointer-events:auto; margin-top:18px; animation:mamtaRise .8s .6s both; }
+@keyframes openingLogo { from { opacity:0; transform:scale(.55) rotate(-8deg); } to { opacity:1; transform:scale(1) rotate(0); } }
+@keyframes openingFade { to { opacity:0; visibility:hidden; } }
+@media (prefers-reduced-motion: reduce) { .opening-screen { animation:none; } }
 .product-detail-shell { max-width:1180px; margin:auto; padding:48px 5vw 100px; min-height:70vh; }
 .back-link { color:#6f4650; font-weight:700; text-decoration:none; }
 .product-detail { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(320px,.95fr); gap:clamp(28px,6vw,80px); margin-top:28px; align-items:start; }
