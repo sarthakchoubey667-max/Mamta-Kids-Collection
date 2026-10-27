@@ -6,7 +6,58 @@ const ROOT = path.resolve(__dirname, "..");
 const DATA_DIR = path.join(ROOT, "data");
 const DATA_FILE = path.join(DATA_DIR, "store.json");
 const DATABASE_FILE = path.resolve(ROOT, process.env.DATABASE_FILE || path.join("data", "store.sqlite"));
+const SUPABASE_URL = String(process.env.SUPABASE_URL || "").replace(/\/$/, "");
+const SUPABASE_SERVICE_KEY = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
 let database;
+let syncTimer;
+
+function cloudSyncEnabled() { return Boolean(SUPABASE_URL && SUPABASE_SERVICE_KEY); }
+
+function cloudSnapshot() {
+    return {
+        customers: database.prepare("SELECT email, payload FROM customers").all(),
+        custom_products: database.prepare("SELECT id, payload FROM custom_products").all(),
+        orders: database.prepare("SELECT id, created_at, payload FROM orders").all(),
+        messages: database.prepare("SELECT id, created_at, payload FROM messages").all(),
+        built_in_products: database.prepare("SELECT value FROM settings WHERE key = 'built_in_products'").get()?.value || ""
+    };
+}
+
+async function pushCloudSnapshot() {
+    if (!cloudSyncEnabled() || !database) return;
+    try {
+        await fetch(`${SUPABASE_URL}/rest/v1/store_state?on_conflict=id`, {
+            method: "POST",
+            headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
+            body: JSON.stringify({ id: 1, payload: cloudSnapshot(), updated_at: new Date().toISOString() })
+        });
+    } catch { /* local database continues if cloud is temporarily unavailable */ }
+}
+
+function scheduleCloudSync() {
+    if (!cloudSyncEnabled()) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => { void pushCloudSnapshot(); }, 250);
+}
+
+async function restoreCloudSnapshot() {
+    if (!cloudSyncEnabled()) return;
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/store_state?id=eq.1&select=payload`, { headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` } });
+        if (!response.ok) return;
+        const snapshot = (await response.json())[0]?.payload;
+        if (!snapshot) return;
+        const restore = database.transaction(() => {
+            for (const table of ["customers", "custom_products", "orders", "messages"]) database.prepare(`DELETE FROM ${table}`).run();
+            for (const row of snapshot.customers || []) database.prepare("INSERT INTO customers (email, payload) VALUES (?, ?)").run(row.email, row.payload);
+            for (const row of snapshot.custom_products || []) database.prepare("INSERT INTO custom_products (id, payload) VALUES (?, ?)").run(row.id, row.payload);
+            for (const row of snapshot.orders || []) database.prepare("INSERT INTO orders (id, created_at, payload) VALUES (?, ?, ?)").run(row.id, row.created_at, row.payload);
+            for (const row of snapshot.messages || []) database.prepare("INSERT INTO messages (id, created_at, payload) VALUES (?, ?, ?)").run(row.id, row.created_at, row.payload);
+            if (snapshot.built_in_products) database.prepare("INSERT INTO settings (key, value) VALUES ('built_in_products', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(snapshot.built_in_products);
+        });
+        restore();
+    } catch { /* keep local data when the cloud is unavailable */ }
+}
 
 async function readStore() {
     return {
@@ -29,6 +80,7 @@ function writeStore(store) {
         for (const product of store.customProducts || []) addProduct.run(product.id, JSON.stringify(product));
     });
     save();
+    scheduleCloudSync();
 }
 
 function getSetting(key) {
@@ -37,6 +89,7 @@ function getSetting(key) {
 
 function setSetting(key, value) {
     database.prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(key, value);
+    scheduleCloudSync();
 }
 
 function saveOrder(order, idempotencyKey, requestHash, builtInProductIds, trackingTokenHash) {
@@ -95,7 +148,9 @@ function saveOrder(order, idempotencyKey, requestHash, builtInProductIds, tracki
             .run(order.id, order.status, "Order received by the store.", "", order.createdAt);
         return { order, duplicate: false };
     });
-    return save();
+    const result = save();
+    scheduleCloudSync();
+    return result;
 }
 
 function updateOrderStatus(orderId, status, message, location) {
@@ -110,7 +165,9 @@ function updateOrderStatus(orderId, status, message, location) {
             .run(orderId, status, message, location || order.location || "", new Date().toISOString());
         return order;
     });
-    return update();
+    const result = update();
+    scheduleCloudSync();
+    return result;
 }
 
 function getTrackedOrder(orderId, trackingTokenHash) {
@@ -139,6 +196,7 @@ function getCustomerByEmail(email) {
 function saveCustomer(customer) {
     database.prepare("INSERT INTO customers (email, payload) VALUES (?, ?) ON CONFLICT(email) DO UPDATE SET payload = excluded.payload")
         .run(customer.email.toLowerCase(), JSON.stringify(customer));
+    scheduleCloudSync();
 }
 
 function listCustomerOrders(email) {
@@ -178,6 +236,8 @@ async function initializeDatabase({ bootstrapOwnerPassword = "", hashPassword, i
         database.prepare("INSERT INTO migrations (name, completed_at) VALUES (?, ?)").run("import-store-json", new Date().toISOString());
     }
 
+    await restoreCloudSnapshot();
+
     if (!getSetting("owner_password_hash") && bootstrapOwnerPassword) {
         const firstPassword = bootstrapOwnerPassword;
         if (!isValidOwnerPassword(firstPassword)) throw new Error("ADMIN_PASSWORD cannot be empty.");
@@ -185,6 +245,7 @@ async function initializeDatabase({ bootstrapOwnerPassword = "", hashPassword, i
         setSetting("owner_password_salt", credential.salt);
         setSetting("owner_password_hash", credential.hash);
     }
+    await pushCloudSnapshot();
 }
 
 module.exports = { initializeDatabase, readStore, writeStore, getSetting, setSetting, saveOrder, updateOrderStatus, getTrackedOrder, getOrderEvents, getCustomerByEmail, saveCustomer, listCustomerOrders };
