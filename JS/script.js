@@ -705,18 +705,14 @@ if (checkoutSummary) {
 const placeOrderBtn = document.getElementById("placeOrderBtn");
 const checkoutForm = document.getElementById("checkoutForm");
 
-const onlinePaymentInput = document.querySelector('input[name="payment"][value="online"]');
-if (onlinePaymentInput) {
-    apiRequest("/api/payments/razorpay/config").then(config => {
-        if (config.enabled) return;
-        onlinePaymentInput.disabled = true;
-        const label = onlinePaymentInput.closest("label");
-        if (label) label.append(" — currently unavailable");
-    }).catch(() => {
-        onlinePaymentInput.disabled = true;
-    });
+const onlinePaymentInput = document.querySelector('input[name="payment"][value="upi_qr"]');
+const upiQrPanel = document.getElementById("upiQrPanel");
+if (onlinePaymentInput && upiQrPanel) {
+    onlinePaymentInput.addEventListener("change", () => { upiQrPanel.hidden = false; });
+    document.querySelectorAll('input[name="payment"]').forEach(input => input.addEventListener("change", () => {
+        if (input.value !== "upi_qr" && input.checked) upiQrPanel.hidden = true;
+    }));
 }
-
 if (placeOrderBtn && checkoutForm) {
     checkoutForm.addEventListener("submit", function (event) {
         event.preventDefault();
@@ -792,29 +788,7 @@ if (placeOrderBtn && checkoutForm) {
             payment: payment.value,
             items: cart.map(item => ({ productId: item.productId, quantity: item.quantity }))
         };
-        const placeVerifiedOrder = payment.value === "online"
-            ? apiRequest("/api/payments/razorpay/order", { method: "POST", body: JSON.stringify({ items: orderPayload.items }) }).then(paymentOrder => new Promise((resolve, reject) => {
-                if (!window.Razorpay) {
-                    reject(new Error("Online payment is unavailable right now. Please choose Cash on Delivery."));
-                    return;
-                }
-                const checkout = new window.Razorpay({
-                    key: paymentOrder.keyId,
-                    amount: paymentOrder.amount,
-                    currency: paymentOrder.currency,
-                    name: "Mamta Kids Collection",
-                    description: "Kidswear order",
-                    order_id: paymentOrder.orderId,
-                    prefill: { name: nameInput.value, email: emailInput.value },
-                    theme: { color: "#171918" },
-                    handler: resolve,
-                    modal: { ondismiss: () => reject(new Error("Payment was cancelled.")) }
-                });
-                checkout.on("payment.failed", () => reject(new Error("Payment failed. Please try again or choose Cash on Delivery.")));
-                checkout.open();
-            })).then(paymentDetails => ({ ...orderPayload, paymentDetails }))
-            : Promise.resolve(orderPayload);
-
+        const placeVerifiedOrder = payment.value === "upi_qr" ? Promise.resolve({ ...orderPayload, paymentDetails: { reference: document.getElementById("upiReference")?.value || "" } }) : Promise.resolve(orderPayload);
         placeVerifiedOrder.then(finalPayload => apiRequest("/api/orders", {
             method: "POST",
             headers: { "Idempotency-Key": idempotencyKey, "X-Order-Tracking-Token": trackingToken },
