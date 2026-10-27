@@ -53,6 +53,8 @@ async function apiRequest(path, options) {
 }
 
 let selectedCategory = "all";
+let catalogProducts = [];
+const sortProducts = document.getElementById("sortProducts");
 
 function setSelectedCategory(category) {
     selectedCategory = category;
@@ -107,33 +109,8 @@ async function loadOwnerProducts() {
     if (!productList) return;
     try {
         const result = await apiRequest("/api/products");
-        productList.replaceChildren();
-        result.products.forEach(product => {
-            const card = document.createElement("article");
-            card.className = `product-card ${product.category}`;
-            card.dataset.productId = product.id;
-            const imageBox = document.createElement("div");
-            imageBox.className = "product-image";
-            const image = document.createElement("img");
-            image.src = product.image;
-            image.alt = product.name;
-            image.loading = "lazy";
-            imageBox.appendChild(image);
-            const title = document.createElement("h3");
-            title.textContent = product.name;
-            const price = document.createElement("p");
-            price.textContent = `₹${Number(product.price).toFixed(2)}`;
-            const addButton = document.createElement("button");
-            addButton.type = "button";
-            addButton.className = "add-cart";
-            addButton.dataset.productId = product.id;
-            addButton.dataset.name = product.name;
-            addButton.dataset.price = product.price;
-            addButton.dataset.image = product.image;
-            addButton.textContent = "Add to Cart";
-            card.append(imageBox, title, price, addButton);
-            productList.appendChild(card);
-        });
+        catalogProducts = result.products;
+        renderCatalogProducts();
         products = Array.from(document.querySelectorAll(".product-card"));
         const status = document.getElementById("productLoadStatus");
         if (status) status.textContent = `${products.length} styles available`;
@@ -144,16 +121,6 @@ async function loadOwnerProducts() {
             document.querySelectorAll(".category-options button").forEach(button => button.classList.toggle("active", button === activeButton));
         }
         filterProducts();
-        if (globalSearch.input.value.trim()) {
-            const matches = filterProducts();
-            if (initialSearch && matches > 0) {
-                globalSearch.container.style.display = "none";
-                productList.scrollIntoView({ behavior: "smooth", block: "start" });
-            } else if (initialSearch && matches === 0) {
-                globalSearch.container.style.display = "flex";
-                showSuggestions();
-            }
-        }
     } catch (error) {
         console.error("Could not load owner-added products:", error);
         const status = document.getElementById("productLoadStatus");
@@ -161,7 +128,115 @@ async function loadOwnerProducts() {
     }
 }
 
+function renderCatalogProducts() {
+    const productList = document.getElementById("productList");
+    if (!productList) return;
+    const sorted = [...catalogProducts].sort((a, b) => {
+        if (sortProducts?.value === "price-low") return Number(a.price) - Number(b.price);
+        if (sortProducts?.value === "price-high") return Number(b.price) - Number(a.price);
+        if (sortProducts?.value === "newest") return String(b.id).localeCompare(String(a.id));
+        return 0;
+    });
+    productList.replaceChildren();
+    sorted.forEach(product => {
+            const card = document.createElement("article");
+            card.className = `product-card ${product.category}`;
+            card.dataset.productId = product.id;
+            const imageBox = document.createElement("div");
+            imageBox.className = "product-image";
+            const firstImage = (product.images && product.images[0]) || product.image;
+            const image = document.createElement("img");
+            image.src = firstImage;
+            image.alt = product.name;
+            image.loading = "lazy";
+            imageBox.appendChild(image);
+            if ((product.images?.length || 0) > 1) {
+                const photoCount = document.createElement("span");
+                photoCount.className = "photo-count";
+                photoCount.textContent = `${product.images.length} photos`;
+                imageBox.appendChild(photoCount);
+            }
+            if (Number.isInteger(product.stock) && product.stock <= 5) {
+                const stockBadge = document.createElement("span");
+                stockBadge.className = "stock-badge";
+                stockBadge.textContent = product.stock ? `Only ${product.stock} left` : "Sold out";
+                imageBox.appendChild(stockBadge);
+            }
+            const viewLink = document.createElement("a");
+            viewLink.className = "product-view-link";
+            viewLink.href = `product.html?id=${encodeURIComponent(product.id)}`;
+            viewLink.textContent = "View details";
+            const title = document.createElement("h3");
+            title.textContent = product.name;
+            const meta = document.createElement("p");
+            meta.className = "product-meta";
+            meta.textContent = [product.color, product.sizes].filter(Boolean).join(" · ") || "Kids collection";
+            const price = document.createElement("p");
+            price.className = "product-price";
+            price.textContent = `₹${Number(product.price).toFixed(2)}`;
+            const addButton = document.createElement("button");
+            addButton.type = "button";
+            addButton.className = "add-cart";
+            addButton.dataset.productId = product.id;
+            addButton.dataset.name = product.name;
+            addButton.dataset.price = product.price;
+            addButton.dataset.image = firstImage;
+            addButton.textContent = product.stock === 0 ? "Sold out" : "Add to Cart";
+            addButton.disabled = product.stock === 0;
+            card.append(imageBox, title, meta, price, viewLink, addButton);
+            productList.appendChild(card);
+        });
+}
+
 loadOwnerProducts();
+sortProducts?.addEventListener("change", () => { renderCatalogProducts(); products = Array.from(document.querySelectorAll(".product-card")); filterProducts(); });
+
+async function loadProductDetail() {
+    const detail = document.getElementById("productDetail");
+    if (!detail) return;
+    const status = document.getElementById("productDetailStatus");
+    const id = new URLSearchParams(window.location.search).get("id");
+    try {
+        const { products: catalog } = await apiRequest("/api/products");
+        const product = catalog.find(item => item.id === id);
+        if (!product) throw new Error("Product not found.");
+        const images = product.images?.length ? product.images : [product.image];
+        const gallery = document.createElement("div");
+        gallery.className = "product-gallery";
+        const mainImage = document.createElement("img");
+        mainImage.className = "product-detail-main-image";
+        mainImage.src = images[0];
+        mainImage.alt = product.name;
+        gallery.appendChild(mainImage);
+        if (images.length > 1) {
+            const thumbs = document.createElement("div");
+            thumbs.className = "product-thumbnails";
+            images.forEach(src => {
+                const thumb = document.createElement("button");
+                thumb.type = "button";
+                const image = document.createElement("img"); image.src = src; image.alt = "";
+                thumb.appendChild(image);
+                thumb.addEventListener("click", () => { mainImage.src = src; });
+                thumbs.appendChild(thumb);
+            });
+            gallery.appendChild(thumbs);
+        }
+        const info = document.createElement("div"); info.className = "product-detail-info";
+        const eyebrow = document.createElement("p"); eyebrow.className = "eyebrow"; eyebrow.textContent = "MAMTA KIDS COLLECTION";
+        const title = document.createElement("h1"); title.textContent = product.name;
+        const price = document.createElement("strong"); price.className = "product-detail-price"; price.textContent = `₹${Number(product.price).toFixed(2)}`;
+        const description = document.createElement("p"); description.className = "product-detail-description"; description.textContent = product.description || "A comfortable, play-ready style made for little ones.";
+        const details = document.createElement("div"); details.className = "product-specs";
+        [["Colour", product.color], ["Sizes", product.sizes], ["Availability", Number.isInteger(product.stock) ? (product.stock ? `${product.stock} available` : "Sold out") : "Available"]].forEach(([label, value]) => {
+            if (!value) return; const row = document.createElement("p"); row.innerHTML = `<span>${label}</span>`; const text = document.createTextNode(String(value)); row.appendChild(text); details.appendChild(row);
+        });
+        const add = document.createElement("button"); add.type = "button"; add.className = "detail-add-cart"; add.textContent = product.stock === 0 ? "Sold out" : "Add to Cart"; add.disabled = product.stock === 0;
+        add.addEventListener("click", () => { const cart = getCart(); const existing = cart.find(item => item.productId === product.id); if (existing) existing.quantity += 1; else cart.push({ productId: product.id, quantity: 1 }); saveCart(cart); alert(`${product.name} added to cart!`); });
+        info.append(eyebrow, title, price, description, details, add);
+        detail.append(gallery, info); detail.hidden = false; if (status) status.hidden = true; document.title = `${product.name} — Mamta Kids Collection`;
+    } catch (error) { if (status) status.textContent = error.message; }
+}
+loadProductDetail();
 
 
 // ===============================
