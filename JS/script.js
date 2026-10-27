@@ -977,6 +977,11 @@ function renderCustomerProfile(customer, orders = []) {
     orderBox.innerHTML = orders.map(order => `<article class="mini-order"><strong>${order.id}</strong><span>${order.status} · ₹${Number(order.total).toFixed(2)}</span><small>${new Date(order.createdAt).toLocaleDateString()}</small></article>`).join("");
 }
 
+function continueAfterCustomerLogin() {
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (next && !next.startsWith("admin.html") && !next.includes("//")) window.location.replace(next);
+}
+
 if (profilePanel) {
     const loadProfile = async () => {
         try {
@@ -984,6 +989,7 @@ if (profilePanel) {
             if (!session.authenticated) return;
             const result = await accountRequest("/api/customer/orders");
             renderCustomerProfile(session.customer, result.orders);
+            continueAfterCustomerLogin();
         } catch (error) { if (accountMessage) accountMessage.textContent = error.message; }
     };
     loadProfile();
@@ -992,6 +998,7 @@ if (profilePanel) {
         try {
             const result = await accountRequest("/api/customer/signup", { method: "POST", body: JSON.stringify({ name: document.getElementById("signupName").value, email: document.getElementById("signupEmail").value, phone: document.getElementById("signupPhone").value, password: document.getElementById("signupPassword").value }) });
             renderCustomerProfile(result.customer, []);
+            continueAfterCustomerLogin();
             accountMessage.textContent = "Your customer profile is ready.";
         } catch (error) { accountMessage.textContent = error.message; }
     });
@@ -1001,6 +1008,7 @@ if (profilePanel) {
             const result = await accountRequest("/api/customer/login", { method: "POST", body: JSON.stringify({ email: document.getElementById("loginEmail").value, password: document.getElementById("loginPassword").value }) });
             const orders = await accountRequest("/api/customer/orders");
             renderCustomerProfile(result.customer, orders.orders);
+            continueAfterCustomerLogin();
             accountMessage.textContent = "Signed in successfully.";
         } catch (error) { accountMessage.textContent = error.message; }
     });
