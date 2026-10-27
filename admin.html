@@ -81,6 +81,8 @@
         <section id="loginPanel" class="owner-panel">
             <h2>Owner sign-in</h2>
             <form id="loginForm">
+                <label for="ownerId">Owner ID</label>
+                <input id="ownerId" autocomplete="username" required placeholder="Your fixed owner ID">
                 <label for="ownerPassword">Owner password</label>
                 <input id="ownerPassword" type="password" autocomplete="current-password" required>
                 <button type="submit">Sign in</button>
@@ -553,7 +555,7 @@
                 await ownerRequest("/api/admin/login", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ password: document.getElementById("ownerPassword").value })
+                    body: JSON.stringify({ id: document.getElementById("ownerId").value, password: document.getElementById("ownerPassword").value })
                 });
                 showAdminView("overview");
                 await loadProducts();

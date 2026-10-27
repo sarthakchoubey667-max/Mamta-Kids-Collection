@@ -12,6 +12,7 @@ const UPLOAD_DIR = path.resolve(ROOT, process.env.UPLOAD_DIR || path.join("image
 const PORT = Number(process.env.PORT) || 3000;
 const APP_ORIGIN = process.env.APP_ORIGIN || "";
 const BOOTSTRAP_OWNER_PASSWORD = process.env.ADMIN_PASSWORD || "";
+const OWNER_LOGIN_ID = String(process.env.OWNER_LOGIN_ID || "owner").trim().toLowerCase();
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || "";
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || "";
 const adminSessions = new Map();
@@ -350,10 +351,11 @@ async function handleApi(request, response, pathname) {
         if (!getSetting("owner_password_hash")) return sendJson(response, 503, { error: "Owner password is not set. Stop the server, set ADMIN_PASSWORD once, and restart it. The password hash will be saved in the database." });
         if (isRateLimited(request)) return sendRateLimited(response);
         const body = await readBody(request);
+        const ownerId = cleanText(body.id, 80).toLowerCase();
         const supplied = Buffer.from(typeof body.password === "string" ? body.password : "");
-        if (!verifyPassword(supplied.toString("utf8"))) {
+        if (ownerId !== OWNER_LOGIN_ID || !verifyPassword(supplied.toString("utf8"))) {
             recordAuthFailure(request);
-            return sendJson(response, 401, { error: "Incorrect owner password." });
+            return sendJson(response, 401, { error: "Incorrect owner ID or password." });
         }
         clearAuthFailures(request);
         createAdminSession(response, request);
