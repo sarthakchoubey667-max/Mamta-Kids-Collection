@@ -32,13 +32,13 @@
             <input type="text" id="pincode" inputmode="numeric" autocomplete="postal-code" maxlength="20" required>
             <h2>Payment method</h2>
             <label class="payment-option"><input type="radio" name="payment" value="cod" required> Cash on delivery</label>
-            <label class="payment-option"><input type="radio" name="payment" value="online" required> Online payment (UPI, cards, net banking)</label>
+            <label class="payment-option"><input type="radio" name="payment" value="upi_qr" required> Pay online by UPI QR (Google Pay / PhonePe / Paytm)</label><section id="upiQrPanel" class="upi-qr-panel" hidden><h3>Scan & pay</h3><p>QR scan karke payment karein, phir नीचे “I have paid” दबाएँ। Owner payment verify karke order process karega.</p><img src="images/payment-qr.jpg" alt="Mamta Kids Collection UPI payment QR"><label for="upiReference">Payment reference / UTR (optional)</label><input id="upiReference" maxlength="100" placeholder="Example: UPI transaction ID"></section>
             <button id="placeOrderBtn" type="submit">Place order</button>
             <p id="checkoutMessage" role="status"></p>
         </form>
     </main>
     <footer class="footer"><div class="footer-section"><h2>Mamta Kids Collection</h2><p>Little looks. Big smiles.</p></div><div class="footer-bottom">&copy; 2026 Mamta Kids Collection. All rights reserved.</div></footer>
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
     <script src="JS/script.js"></script>
 </body>
 </html>

@@ -137,8 +137,14 @@
                     <input id="productPrice" type="number" min="0.01" max="1000000" step="0.01" required>
                     <label for="productStock">Stock quantity (leave blank for untracked stock)</label>
                     <input id="productStock" type="number" min="0" max="1000000" step="1" placeholder="Not tracked">
-                    <label id="productImageLabel" for="productImage">Kids product photo (JPEG, PNG, or WebP; max 5 MB)</label>
-                    <input id="productImage" type="file" accept="image/jpeg,image/png,image/webp" required>
+                    <label for="productDescription">Product description</label>
+                    <textarea id="productDescription" maxlength="2000" rows="5" placeholder="Fabric, fit, occasion, and set details"></textarea>
+                    <label for="productSizes">Available sizes</label>
+                    <input id="productSizes" maxlength="200" placeholder="Example: 2-3Y, 3-4Y, 4-5Y">
+                    <label for="productColor">Colour</label>
+                    <input id="productColor" maxlength="80" placeholder="Example: Beige and Black">
+                    <label id="productImageLabel" for="productImage">Product photos (choose up to 2; JPEG, PNG, or WebP; max 5 MB each)</label>
+                    <input id="productImage" type="file" accept="image/jpeg,image/png,image/webp" multiple required>
                     <button type="submit">Add product</button>
                     <button id="cancelEditProduct" type="button" hidden>Cancel edit</button>
                 </form>
@@ -185,7 +191,7 @@
                 </section>
                 <section class="admin-view" data-view-panel="payments" hidden>
                     <h2>Payments</h2>
-                    <p class="payment-note">Payment methods and totals are listed here. COD remains available, while online payments are verified through Razorpay before an order is saved.</p>
+                    <p class="payment-note">Payment methods and totals are listed here. COD remains available, while UPI QR payments are saved as pending until you verify the payment manually.</p>
                     <div id="paymentsList" class="owner-list"></div>
                 </section>
                 <section class="admin-view" data-view-panel="messages" hidden>
@@ -238,6 +244,9 @@
             document.getElementById("productCategory").value = product.category;
             document.getElementById("productPrice").value = product.price;
             document.getElementById("productStock").value = Number.isInteger(product.stock) ? product.stock : "";
+            document.getElementById("productDescription").value = product.description || "";
+            document.getElementById("productSizes").value = product.sizes || "";
+            document.getElementById("productColor").value = product.color || "";
             document.getElementById("productImage").required = false;
             document.getElementById("productImageLabel").textContent = "Replace photo (optional; JPEG, PNG, or WebP; max 5 MB)";
             document.getElementById("productFormHeading").textContent = "Edit store product";
@@ -281,7 +290,7 @@
                 const card = document.createElement("article");
                 card.className = "owner-product";
                 const image = document.createElement("img");
-                image.src = product.image;
+                image.src = product.image || product.images?.[0];
                 image.alt = product.name;
                 const title = document.createElement("h3");
                 title.textContent = product.name;
@@ -389,7 +398,7 @@
             tracked.length ? trackingOrders.replaceChildren(...tracked.map(order => createOrderCard(order))) : addEmptyState(trackingOrders, "No orders to track yet.");
             paymentsList.replaceChildren(...orders.map(order => recordCard(`Order ${order.id}`, [
                 `Customer: ${order.customer.name} (${order.customer.email})`,
-                `Method: ${order.payment === "cod" ? "Cash on Delivery" : "Online payment (Razorpay)"}`,
+                `Method: ${order.payment === "cod" ? "Cash on Delivery" : "UPI QR (verify manually)"}`,
                 `Order total: INR ${Number(order.total).toFixed(2)}`,
                 `Order status: ${order.status || "Pending"}`,
                 order.payment === "cod" ? "Collection: due on delivery" : "Collection: online payment verified"
@@ -555,21 +564,20 @@
 
         document.getElementById("productForm").addEventListener("submit", async event => {
             event.preventDefault();
-            const file = document.getElementById("productImage").files[0];
+            const files = Array.from(document.getElementById("productImage").files || []);
             const editingId = document.getElementById("editingProductId").value;
-            if ((!editingId && !file) || (file && file.size > 5 * 1024 * 1024)) {
-                ownerMessage.textContent = "Choose an image file smaller than 5 MB.";
+            if ((!editingId && !files.length) || files.length > 2 || files.some(file => file.size > 5 * 1024 * 1024)) {
+                ownerMessage.textContent = "Choose up to 2 image files, each smaller than 5 MB.";
                 return;
             }
             ownerMessage.textContent = editingId ? "Saving product..." : "Uploading product...";
             try {
-                let imageData;
-                if (file) imageData = await new Promise((resolve, reject) => {
+                const imageData = await Promise.all(files.map(file => new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = () => resolve(reader.result);
                     reader.onerror = () => reject(new Error("Could not read the selected image."));
                     reader.readAsDataURL(file);
-                });
+                })));
                 const result = await ownerRequest(editingId ? `/api/admin/products/${encodeURIComponent(editingId)}` : "/api/admin/products", {
                     method: editingId ? "PUT" : "POST",
                     headers: { "Content-Type": "application/json" },
@@ -578,7 +586,10 @@
                         category: document.getElementById("productCategory").value,
                         price: document.getElementById("productPrice").value,
                         stock: document.getElementById("productStock").value,
-                        imageData
+                        imageData,
+                        description: document.getElementById("productDescription").value,
+                        sizes: document.getElementById("productSizes").value,
+                        color: document.getElementById("productColor").value
                     })
                 });
                 ownerMessage.textContent = result.message;

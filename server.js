@@ -427,15 +427,20 @@ async function handleApi(request, response, pathname) {
         const category = cleanText(body.category, 20);
         const price = Number(body.price);
         const stock = body.stock === "" || body.stock == null ? null : Number(body.stock);
-        const image = parseImageData(body.imageData);
-        if (!name || category !== "kids" || !Number.isFinite(price) || price <= 0 || price > 1_000_000 || (stock !== null && (!Number.isInteger(stock) || stock < 0 || stock > 1_000_000)) || !image) {
+        const imageDataList = Array.isArray(body.imageData) ? body.imageData : (body.imageData ? [body.imageData] : []);
+        const images = imageDataList.map(parseImageData).filter(Boolean);
+        if (!name || category !== "kids" || !Number.isFinite(price) || price <= 0 || price > 1_000_000 || (stock !== null && (!Number.isInteger(stock) || stock < 0 || stock > 1_000_000)) || !images.length || images.length > 2) {
             return sendJson(response, 400, { error: "Enter a kids product name, price, and upload a JPEG, PNG, or WebP image up to 5 MB." });
         }
         const id = `custom-${crypto.randomUUID()}`;
-        const filename = `${id}${image.extension}`;
         await fs.mkdir(UPLOAD_DIR, { recursive: true });
-        await fs.writeFile(path.join(UPLOAD_DIR, filename), image.buffer, { flag: "wx" });
-        const product = { id, name, category, price: Math.round(price * 100) / 100, stock, image: `images/uploads/${filename}`, ownerAdded: true };
+        const imagePaths = [];
+        for (const image of images) {
+            const filename = `${id}-${crypto.randomUUID()}${image.extension}`;
+            await fs.writeFile(path.join(UPLOAD_DIR, filename), image.buffer, { flag: "wx" });
+            imagePaths.push(`images/uploads/${filename}`);
+        }
+        const product = { id, name, category, price: Math.round(price * 100) / 100, stock, image: imagePaths[0], images: imagePaths, description: cleanText(body.description, 2000), sizes: cleanText(body.sizes, 200), color: cleanText(body.color, 80), ownerAdded: true };
         const store = await readStore();
         store.customProducts.push(product);
         await writeStore(store);
@@ -449,8 +454,9 @@ async function handleApi(request, response, pathname) {
         const category = cleanText(body.category, 20);
         const price = Number(body.price);
         const stock = body.stock === "" || body.stock == null ? null : Number(body.stock);
-        const image = body.imageData ? parseImageData(body.imageData) : null;
-        if (!name || category !== "kids" || !Number.isFinite(price) || price <= 0 || price > 1_000_000 || (stock !== null && (!Number.isInteger(stock) || stock < 0 || stock > 1_000_000)) || (body.imageData && !image)) {
+        const imageDataList = Array.isArray(body.imageData) ? body.imageData : (body.imageData ? [body.imageData] : []);
+        const images = imageDataList.map(parseImageData).filter(Boolean);
+        if (!name || category !== "kids" || !Number.isFinite(price) || price <= 0 || price > 1_000_000 || (stock !== null && (!Number.isInteger(stock) || stock < 0 || stock > 1_000_000)) || (imageDataList.length && (!images.length || images.length > 2))) {
             return sendJson(response, 400, { error: "Enter a kids product name, price, and choose a JPEG, PNG, or WebP image up to 5 MB." });
         }
         const id = updateMatch[1];
@@ -464,19 +470,23 @@ async function handleApi(request, response, pathname) {
             catch { builtInOverrides = {}; }
         }
         const oldImage = product?.image || builtInOverrides[id]?.image;
-        const updatedFields = { name, category, price: Math.round(price * 100) / 100, stock };
+        const updatedFields = { name, category, price: Math.round(price * 100) / 100, stock, description: cleanText(body.description, 2000), sizes: cleanText(body.sizes, 200), color: cleanText(body.color, 80) };
         if (product) Object.assign(product, updatedFields);
         else builtInOverrides[id] = { ...(builtInOverrides[id] || {}), ...updatedFields };
-        if (image) {
-            const filename = `${id}-${crypto.randomUUID()}${image.extension}`;
-            await fs.mkdir(UPLOAD_DIR, { recursive: true });
-            await fs.writeFile(path.join(UPLOAD_DIR, filename), image.buffer, { flag: "wx" });
-            if (product) product.image = `images/uploads/${filename}`;
-            else builtInOverrides[id].image = `images/uploads/${filename}`;
+        if (images.length) {
+            const imagePaths = [];
+            for (const image of images) {
+                const filename = `${id}-${crypto.randomUUID()}${image.extension}`;
+                await fs.mkdir(UPLOAD_DIR, { recursive: true });
+                await fs.writeFile(path.join(UPLOAD_DIR, filename), image.buffer, { flag: "wx" });
+                imagePaths.push(`images/uploads/${filename}`);
+            }
+            if (product) { product.image = imagePaths[0]; product.images = imagePaths; }
+            else { builtInOverrides[id].image = imagePaths[0]; builtInOverrides[id].images = imagePaths; }
         }
         await writeStore(store);
         if (isBuiltIn) setSetting("built_in_products", JSON.stringify(builtInOverrides));
-        if (image && oldImage) {
+        if (images.length && oldImage) {
             const oldPath = path.resolve(ROOT, oldImage);
             if (oldPath.startsWith(UPLOAD_DIR + path.sep)) await fs.rm(oldPath, { force: true });
         }
@@ -527,7 +537,7 @@ async function handleApi(request, response, pathname) {
         if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !address || !city || !pincode) {
             return sendJson(response, 400, { error: "Enter valid customer and delivery details." });
         }
-        if (!["cod", "online"].includes(payment)) return sendJson(response, 400, { error: "Select a valid payment method." });
+        if (!["cod", "upi_qr"].includes(payment)) return sendJson(response, 400, { error: "Select a valid payment method." });
         const idempotencyKey = cleanText(request.headers["idempotency-key"], 80);
         if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey)) {
             return sendJson(response, 400, { error: "Refresh checkout and submit the order again." });
@@ -538,14 +548,8 @@ async function handleApi(request, response, pathname) {
         if (cart.error) return sendJson(response, 400, { error: cart.error });
         const { items, total } = cart;
         let paymentDetails = null;
-        if (payment === "online") {
-            if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) return sendJson(response, 503, { error: "Online payment is not configured yet. Please choose Cash on Delivery." });
-            paymentDetails = body.paymentDetails || {};
-            const pending = pendingPayments.get(paymentDetails.razorpayOrderId);
-            if (!pending || pending.expiresAt < Date.now() || pending.amount !== Math.round(total * 100) || !verifyRazorpaySignature(paymentDetails.razorpayOrderId, paymentDetails.razorpayPaymentId, paymentDetails.razorpaySignature)) {
-                return sendJson(response, 400, { error: "Online payment could not be verified. Please try again." });
-            }
-            pendingPayments.delete(paymentDetails.razorpayOrderId);
+        if (payment === "upi_qr") {
+            paymentDetails = { method: "UPI QR", status: "Verification pending", reference: cleanText(body.paymentDetails?.reference, 100) };
         }
 
         const normalizedCustomer = { name, email, address, city, pincode };
@@ -556,7 +560,7 @@ async function handleApi(request, response, pathname) {
             status: "Pending",
             customer: normalizedCustomer,
             payment,
-            ...(paymentDetails ? { paymentDetails: { razorpayPaymentId: paymentDetails.razorpayPaymentId, razorpayOrderId: paymentDetails.razorpayOrderId } } : {}),
+            ...(paymentDetails ? { paymentDetails } : {}),
             items,
             total
         };
